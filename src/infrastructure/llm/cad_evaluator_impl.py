@@ -6,7 +6,6 @@ from pathlib import Path
 from domain.services.cad_evaluator import CadEvaluatorService, EvaluationResult
 from infrastructure.llm.vlm_client import VlmClient
 
-
 EVALUATOR_SYSTEM_PROMPT = """You are an expert mechanical engineer evaluating how well a \
 generated 3D CAD model matches a mechanical engineering drawing.
 

@@ -1,14 +1,13 @@
 """Few-shot repository implementation."""
 
+import json
 import random
 from pathlib import Path
-import json
 
 from domain.repositories.few_shot_repository import (
-    FewShotRepository,
     FewShotExample,
+    FewShotRepository,
 )
-
 
 DEFAULT_EXAMPLES = [
     FewShotExample(

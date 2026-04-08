@@ -1,6 +1,7 @@
 """Metrics calculator service implementation."""
 
 import asyncio
+import math
 from pathlib import Path
 
 import numpy as np
@@ -51,31 +52,58 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
         Returns:
             EvaluationMetrics containing all calculated metrics.
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
-        gen_points, gen_euler = await loop.run_in_executor(
-            None, self._load_and_sample, generated_step_path
-        )
-        gt_points, gt_euler = await loop.run_in_executor(
-            None, self._load_and_sample, ground_truth_step_path
+        # Load each STEP file once (concurrent)
+        (gen_points, gen_euler), (gt_points, gt_euler) = (
+            await asyncio.gather(
+                loop.run_in_executor(
+                    None, self._load_and_sample, generated_step_path
+                ),
+                loop.run_in_executor(
+                    None, self._load_and_sample, ground_truth_step_path
+                ),
+            )
         )
 
-        gen_points, gt_points = self._normalize_and_align(gen_points, gt_points)
+        # Normalize and align once
+        gen_points, gt_points = self._normalize_and_align(
+            gen_points, gt_points
+        )
 
-        pcd = await self.calculate_point_cloud_distance(
-            generated_step_path, ground_truth_step_path
+        # Build KD-trees once for PCD and HDD
+        gen_tree = cKDTree(gen_points)
+        gt_tree = cKDTree(gt_points)
+        gen_to_gt_dists, _ = gt_tree.query(gen_points)
+        gt_to_gen_dists, _ = gen_tree.query(gt_points)
+
+        pcd = float(
+            np.mean(gen_to_gt_dists) + np.mean(gt_to_gen_dists)
         )
-        hdd = await self.calculate_hausdorff_distance(
-            generated_step_path, ground_truth_step_path
+        hdd = float(
+            max(np.max(gen_to_gt_dists), np.max(gt_to_gen_dists))
         )
-        iou = await self.calculate_iou(
-            generated_step_path, ground_truth_step_path
+
+        # Voxelize once for IoU and DSC
+        gen_voxels = self._voxelize_from_points(gen_points)
+        gt_voxels = self._voxelize_from_points(gt_points)
+
+        intersection = np.sum(gen_voxels & gt_voxels)
+        union = np.sum(gen_voxels | gt_voxels)
+        gen_sum = np.sum(gen_voxels)
+        gt_sum = np.sum(gt_voxels)
+
+        iou = float(intersection / union) if union > 0 else 0.0
+        dsc = (
+            float(2 * intersection / (gen_sum + gt_sum))
+            if (gen_sum + gt_sum) > 0
+            else 0.0
         )
-        dsc = await self.calculate_dice_coefficient(
-            generated_step_path, ground_truth_step_path
-        )
-        topology_error, topology_correct = await self.calculate_topology_metrics(
-            gen_euler, gt_euler
+
+        topology_error, topology_correct = (
+            await self.calculate_topology_metrics(
+                gen_euler, gt_euler
+            )
         )
 
         cad_structure = await self.calculate_cad_structure_metrics(
@@ -111,7 +139,7 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
         Returns:
             Point Cloud Distance value.
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         gen_points, _ = await loop.run_in_executor(
             None, self._load_and_sample, generated_step_path
@@ -147,7 +175,7 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
         Returns:
             Hausdorff Distance value.
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         gen_points, _ = await loop.run_in_executor(
             None, self._load_and_sample, generated_step_path
@@ -183,7 +211,7 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
         Returns:
             IoU value between 0 and 1.
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         gen_voxels = await loop.run_in_executor(
             None, self._voxelize, generated_step_path
@@ -215,7 +243,7 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
         Returns:
             DSC value between 0 and 1.
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         gen_voxels = await loop.run_in_executor(
             None, self._voxelize, generated_step_path
@@ -273,15 +301,15 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
             Tuple of (point_cloud, euler_characteristic).
         """
         try:
-            from OCP.STEPControl import STEPControl_Reader
-            from OCP.IFSelect import IFSelect_RetDone
-            from OCP.BRepMesh import BRepMesh_IncrementalMesh
-            from OCP.TopExp import TopExp_Explorer
-            from OCP.TopAbs import TopAbs_FACE, TopAbs_VERTEX, TopAbs_EDGE
-            from OCP.TopTools import TopTools_IndexedMapOfShape
             from OCP.BRep import BRep_Tool
+            from OCP.BRepMesh import BRepMesh_IncrementalMesh
+            from OCP.IFSelect import IFSelect_RetDone
+            from OCP.STEPControl import STEPControl_Reader
+            from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE, TopAbs_VERTEX
+            from OCP.TopExp import TopExp_Explorer
             from OCP.TopLoc import TopLoc_Location
             from OCP.TopoDS import TopoDS
+            from OCP.TopTools import TopTools_IndexedMapOfShape
 
             reader = STEPControl_Reader()
             status = reader.ReadFile(str(step_path))
@@ -452,41 +480,41 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
         return source_aligned
 
     def _voxelize(self, step_path: Path) -> np.ndarray:
-        """
-        Voxelize a STEP file.
+        """Voxelize a STEP file (loads from disk)."""
+        points, _ = self._load_and_sample(step_path)
+        return self._voxelize_from_points(points)
 
-        Args:
-            step_path: Path to STEP file.
+    def _voxelize_from_points(
+        self, points: np.ndarray
+    ) -> np.ndarray:
+        """Voxelize from pre-loaded point cloud."""
+        min_coords = np.min(points, axis=0)
+        max_coords = np.max(points, axis=0)
 
-        Returns:
-            3D boolean voxel grid.
-        """
-        try:
-            points, _ = self._load_and_sample(step_path)
+        range_coords = max_coords - min_coords
+        range_coords[range_coords == 0] = 1
 
-            min_coords = np.min(points, axis=0)
-            max_coords = np.max(points, axis=0)
+        normalized = (points - min_coords) / range_coords
+        voxel_indices = (
+            normalized * (self._voxel_resolution - 1)
+        ).astype(int)
+        voxel_indices = np.clip(
+            voxel_indices, 0, self._voxel_resolution - 1
+        )
 
-            range_coords = max_coords - min_coords
-            range_coords[range_coords == 0] = 1
+        voxels = np.zeros(
+            (self._voxel_resolution,) * 3,
+            dtype=bool,
+        )
 
-            normalized = (points - min_coords) / range_coords
-            voxel_indices = (normalized * (self._voxel_resolution - 1)).astype(int)
-            voxel_indices = np.clip(voxel_indices, 0, self._voxel_resolution - 1)
+        # NumPy advanced indexing instead of Python loop
+        voxels[
+            voxel_indices[:, 0],
+            voxel_indices[:, 1],
+            voxel_indices[:, 2],
+        ] = True
 
-            voxels = np.zeros(
-                (self._voxel_resolution,) * 3,
-                dtype=bool,
-            )
-
-            for idx in voxel_indices:
-                voxels[idx[0], idx[1], idx[2]] = True
-
-            return voxels
-
-        except Exception as e:
-            print(f"Error voxelizing STEP file {step_path}: {e}")
-            raise ValueError(f"Failed to voxelize STEP file {step_path}: {e}")
+        return voxels
 
     async def calculate_cad_structure_metrics(
         self,
@@ -503,7 +531,7 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
         Returns:
             CadStructureMetrics with command, sketch, and extrusion accuracy.
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         gen_counts = await loop.run_in_executor(
             None, self._extract_cad_structure, generated_step_path
@@ -614,7 +642,7 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
                     elif curve_type == GeomAbs_Circle:
                         first = adaptor.FirstParameter()
                         last = adaptor.LastParameter()
-                        if abs(last - first - 2 * 3.14159) < 0.01:
+                        if abs(last - first - 2 * math.pi) < 0.01:
                             circles += 1
                         else:
                             arcs += 1

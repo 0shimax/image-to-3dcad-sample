@@ -8,14 +8,16 @@ This script compares three methods:
 """
 
 import json
-from pathlib import Path
-from typing import Dict, List, Any, Optional
-import matplotlib.pyplot as plt
-import matplotlib
-import numpy as np
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
-matplotlib.use('Agg')  # Non-interactive backend
+import matplotlib
+
+matplotlib.use('Agg')
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 @dataclass
@@ -26,7 +28,7 @@ class MetricStats:
     min: float
     max: float
     median: float
-    values: List[float]
+    values: list[float]
 
 
 @dataclass
@@ -38,18 +40,18 @@ class MethodResults:
     hdd: MetricStats
     iou: MetricStats
     dsc: MetricStats
-    topology_error: Optional[MetricStats] = None
-    topology_correct_rate: Optional[float] = None
-    command_accuracy: Optional[MetricStats] = None
+    topology_error: MetricStats | None = None
+    topology_correct_rate: float | None = None
+    command_accuracy: MetricStats | None = None
 
 
-def load_json(file_path: Path) -> Dict[str, Any]:
+def load_json(file_path: Path) -> dict[str, Any]:
     """Load JSON file."""
-    with open(file_path, 'r') as f:
+    with open(file_path) as f:
         return json.load(f)
 
 
-def calculate_stats(values: List[float]) -> MetricStats:
+def calculate_stats(values: list[float]) -> MetricStats:
     """Calculate statistics from values."""
     arr = np.array(values)
     return MetricStats(
@@ -62,7 +64,7 @@ def calculate_stats(values: List[float]) -> MetricStats:
     )
 
 
-def extract_drawing2cad_results(data: Dict[str, Any]) -> MethodResults:
+def extract_drawing2cad_results(data: dict[str, Any]) -> MethodResults:
     """Extract results from Drawing2Cad data."""
     results = data['results']
     successful = [r for r in results if r.get('success', False)]
@@ -84,7 +86,7 @@ def extract_drawing2cad_results(data: Dict[str, Any]) -> MethodResults:
     )
 
 
-def extract_refine_results(data: Dict[str, Any]) -> MethodResults:
+def extract_refine_results(data: dict[str, Any]) -> MethodResults:
     """Extract results from LLM Refine Loop data."""
     results = data['results']
 
@@ -116,7 +118,7 @@ def extract_refine_results(data: Dict[str, Any]) -> MethodResults:
     )
 
 
-def extract_evo_results(data: Dict[str, Any]) -> MethodResults:
+def extract_evo_results(data: dict[str, Any]) -> MethodResults:
     """Extract results from Evolutionary Algorithm data."""
     results = data['results']
 
@@ -149,7 +151,7 @@ def extract_evo_results(data: Dict[str, Any]) -> MethodResults:
 
 
 def create_boxplot_comparison(
-    methods: List[MethodResults],
+    methods: list[MethodResults],
     output_dir: Path
 ) -> None:
     """Create box plots comparing metrics across methods."""
@@ -180,7 +182,7 @@ def create_boxplot_comparison(
 
         # Color boxes
         colors = ['#ff9999', '#66b3ff', '#99ff99']
-        for patch, color in zip(bp['boxes'], colors):
+        for patch, color in zip(bp['boxes'], colors, strict=False):
             patch.set_facecolor(color)
 
         # Labels and title
@@ -197,7 +199,7 @@ def create_boxplot_comparison(
 
 
 def create_improvement_barchart(
-    methods: List[MethodResults],
+    methods: list[MethodResults],
     output_dir: Path
 ) -> None:
     """Create bar chart showing improvement over Drawing2Cad baseline."""
@@ -245,7 +247,7 @@ def create_improvement_barchart(
         )
 
         # Color bars based on positive/negative
-        for bar, imp in zip(bars, improvements):
+        for bar, imp in zip(bars, improvements, strict=False):
             if imp > 0:
                 bar.set_color('green')
             else:
@@ -271,7 +273,7 @@ def create_improvement_barchart(
 
 
 def create_topology_comparison(
-    methods: List[MethodResults],
+    methods: list[MethodResults],
     output_dir: Path
 ) -> None:
     """Create comparison chart for topology metrics (LLM methods only)."""
@@ -288,7 +290,7 @@ def create_topology_comparison(
 
     bp1 = ax1.boxplot(data_to_plot, labels=labels, patch_artist=True)
     colors = ['#66b3ff', '#99ff99']
-    for patch, color in zip(bp1['boxes'], colors[:len(llm_methods)]):
+    for patch, color in zip(bp1['boxes'], colors[:len(llm_methods)], strict=False):
         patch.set_facecolor(color)
 
     ax1.set_title('Topology Error ↓', fontsize=12, fontweight='bold')
@@ -299,7 +301,7 @@ def create_topology_comparison(
     data_to_plot = [m.command_accuracy.values for m in llm_methods]
 
     bp2 = ax2.boxplot(data_to_plot, labels=labels, patch_artist=True)
-    for patch, color in zip(bp2['boxes'], colors[:len(llm_methods)]):
+    for patch, color in zip(bp2['boxes'], colors[:len(llm_methods)], strict=False):
         patch.set_facecolor(color)
 
     ax2.set_title('Command Accuracy ↑', fontsize=12, fontweight='bold')
@@ -314,9 +316,9 @@ def create_topology_comparison(
 
 def generate_model_comparison_table(
     model_name: str,
-    drawing2cad_result: Optional[Dict[str, Any]],
-    refine_result: Dict[str, Any],
-    evo_result: Dict[str, Any]
+    drawing2cad_result: dict[str, Any] | None,
+    refine_result: dict[str, Any],
+    evo_result: dict[str, Any]
 ) -> str:
     """Generate comparison table for a single model."""
     table = f"### {model_name}\n\n"
@@ -362,7 +364,7 @@ def generate_model_comparison_table(
     # PCD row
     pcd_values = [v for v in [d2c_pcd, ref_pcd, evo_pcd] if v is not None]
     best_pcd = min(pcd_values) if pcd_values else None
-    table += f"| PCD ↓ | "
+    table += "| PCD ↓ | "
     table += f"{d2c_pcd:.4f} | " if d2c_pcd else "N/A | "
     table += f"{'**' if ref_pcd == best_pcd else ''}{ref_pcd:.4f}{'**' if ref_pcd == best_pcd else ''} | "
     table += f"{'**' if evo_pcd == best_pcd else ''}{evo_pcd:.4f}{'**' if evo_pcd == best_pcd else ''} | "
@@ -371,7 +373,7 @@ def generate_model_comparison_table(
     # HDD row
     hdd_values = [v for v in [d2c_hdd, ref_hdd, evo_hdd] if v is not None]
     best_hdd = min(hdd_values) if hdd_values else None
-    table += f"| HDD ↓ | "
+    table += "| HDD ↓ | "
     table += f"{d2c_hdd:.4f} | " if d2c_hdd else "N/A | "
     table += f"{'**' if ref_hdd == best_hdd else ''}{ref_hdd:.4f}{'**' if ref_hdd == best_hdd else ''} | "
     table += f"{'**' if evo_hdd == best_hdd else ''}{evo_hdd:.4f}{'**' if evo_hdd == best_hdd else ''} | "
@@ -380,7 +382,7 @@ def generate_model_comparison_table(
     # IoU row
     iou_values = [v for v in [d2c_iou, ref_iou, evo_iou] if v is not None]
     best_iou = max(iou_values) if iou_values else None
-    table += f"| IoU ↑ | "
+    table += "| IoU ↑ | "
     table += f"{d2c_iou:.4f} | " if d2c_iou else "N/A | "
     table += f"{'**' if ref_iou == best_iou else ''}{ref_iou:.4f}{'**' if ref_iou == best_iou else ''} | "
     table += f"{'**' if evo_iou == best_iou else ''}{evo_iou:.4f}{'**' if evo_iou == best_iou else ''} | "
@@ -389,7 +391,7 @@ def generate_model_comparison_table(
     # DSC row
     dsc_values = [v for v in [d2c_dsc, ref_dsc, evo_dsc] if v is not None]
     best_dsc = max(dsc_values) if dsc_values else None
-    table += f"| DSC ↑ | "
+    table += "| DSC ↑ | "
     table += f"{d2c_dsc:.4f} | " if d2c_dsc else "N/A | "
     table += f"{'**' if ref_dsc == best_dsc else ''}{ref_dsc:.4f}{'**' if ref_dsc == best_dsc else ''} | "
     table += f"{'**' if evo_dsc == best_dsc else ''}{evo_dsc:.4f}{'**' if evo_dsc == best_dsc else ''} | "
@@ -397,7 +399,7 @@ def generate_model_comparison_table(
 
     # Topology Error row
     best_topo = min(ref_topo, evo_topo)
-    table += f"| Topology Error ↓ | N/A | "
+    table += "| Topology Error ↓ | N/A | "
     table += f"{'**' if ref_topo == best_topo else ''}{ref_topo:.4f}{'**' if ref_topo == best_topo else ''} | "
     table += f"{'**' if evo_topo == best_topo else ''}{evo_topo:.4f}{'**' if evo_topo == best_topo else ''} | "
     table += f"{'LLM Refine' if ref_topo == best_topo else 'Evolutionary'} |\n"
@@ -406,7 +408,7 @@ def generate_model_comparison_table(
     return table
 
 
-def generate_summary_table(methods: List[MethodResults]) -> str:
+def generate_summary_table(methods: list[MethodResults]) -> str:
     """Generate summary comparison table."""
     table = "## 全体比較（全11モデルの平均）\n\n"
     table += "| メトリクス | Drawing2Cad | LLM Refine | Evolutionary | 改善率（vs Drawing2Cad） |\n"
@@ -461,10 +463,10 @@ def generate_summary_table(methods: List[MethodResults]) -> str:
 
 
 def generate_report(
-    methods: List[MethodResults],
-    drawing2cad_data: Dict[str, Any],
-    refine_data: Dict[str, Any],
-    evo_data: Dict[str, Any],
+    methods: list[MethodResults],
+    drawing2cad_data: dict[str, Any],
+    refine_data: dict[str, Any],
+    evo_data: dict[str, Any],
     output_dir: Path
 ) -> str:
     """Generate comprehensive markdown report."""
@@ -661,7 +663,7 @@ def main():
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write(report)
 
-    print(f"\nReport generated successfully!")
+    print("\nReport generated successfully!")
     print(f"Report: {report_path}")
     print(f"Figures: {figures_dir}")
 

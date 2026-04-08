@@ -3,13 +3,12 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from domain.services.cad_generator import CadGeneratorService
-from domain.services.cad_renderer import CadRendererService
-from domain.services.cad_evaluator import CadEvaluatorService
-from domain.repositories.few_shot_repository import FewShotRepository
-
 from application.workflow.graph_builder import create_refinement_graph
 from application.workflow.workflow_state import RefinementState
+from domain.repositories.few_shot_repository import FewShotRepository
+from domain.services.cad_evaluator import CadEvaluatorService
+from domain.services.cad_generator import CadGeneratorService
+from domain.services.cad_renderer import CadRendererService
 
 
 @dataclass

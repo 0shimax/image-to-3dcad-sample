@@ -1,6 +1,7 @@
 """CAD renderer service implementation."""
 
 import asyncio
+import hashlib
 import json
 import subprocess
 import sys
@@ -37,6 +38,7 @@ class CadRendererServiceImpl(CadRendererService):
         """
         self._image_width = image_width
         self._image_height = image_height
+        self._step_cache: dict[str, Path] = {}  # code hash → STEP path
 
     async def render(
         self,
@@ -58,7 +60,7 @@ class CadRendererServiceImpl(CadRendererService):
         Raises:
             CadRenderError: If rendering fails.
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             None,
             self._render_sync,
@@ -115,7 +117,7 @@ class CadRendererServiceImpl(CadRendererService):
         Raises:
             CadRenderError: If calculation fails.
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             None,
             self._calculate_euler_sync,
@@ -181,7 +183,7 @@ class CadRendererServiceImpl(CadRendererService):
         Raises:
             CadRenderError: If export fails.
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             None,
             self._export_step_sync,
@@ -218,7 +220,7 @@ class CadRendererServiceImpl(CadRendererService):
         Returns:
             Tuple of (is_valid, error_message).
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             None,
             self._validate_code_sync,
@@ -237,6 +239,8 @@ class CadRendererServiceImpl(CadRendererService):
         """
         Execute CAD code in a subprocess and return the result.
 
+        Uses a hash-based cache to avoid re-executing identical code.
+
         Args:
             code: Python code to execute.
 
@@ -246,10 +250,25 @@ class CadRendererServiceImpl(CadRendererService):
         Raises:
             CadRenderError: If code execution fails.
         """
+        code_hash = hashlib.sha256(code.encode()).hexdigest()
+
+        if code_hash in self._step_cache:
+            cached_path = self._step_cache[code_hash]
+            if cached_path.exists():
+                from build123d import import_step
+
+                parts = import_step(str(cached_path))
+                if parts:
+                    return parts if not hasattr(parts, "part") else parts
+
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir_path = Path(tmpdir)
             script_path = tmpdir_path / "cad_script.py"
+            user_code_path = tmpdir_path / "user_code.py"
             step_output_path = tmpdir_path / "output.step"
+
+            # Write user code to separate file to avoid injection
+            user_code_path.write_text(code, encoding="utf-8")
 
             wrapper_script = f'''import sys
 import json
@@ -263,21 +282,17 @@ try:
         if not name.startswith("_"):
             globals()[name] = getattr(build123d, name)
 
-    # Execute the user code in a namespace we can inspect
-    user_code = \'\'\'
-{code}
-\'\'\'
+    # Load and execute user code from file
+    user_code = open("{user_code_path}", encoding="utf-8").read()
     exec_namespace = globals().copy()
-    exec(user_code, exec_namespace)
+    exec(compile(user_code, "{user_code_path}", "exec"), exec_namespace)
 
     # Find the result object
     result_obj = None
 
-    # First, check for explicit 'result' variable
     if 'result' in exec_namespace:
         result_obj = exec_namespace['result']
 
-    # If not found, look for Part objects
     if result_obj is None:
         from build123d import Part, Solid, Compound
         for name, value in exec_namespace.items():
@@ -286,7 +301,6 @@ try:
             if isinstance(value, (Part, Solid, Compound)):
                 result_obj = value
                 break
-            # Check for BuildPart context result
             if hasattr(value, 'part') and isinstance(value.part, (Part, Solid)):
                 result_obj = value.part
                 break
@@ -299,7 +313,6 @@ try:
         }}))
         sys.exit(1)
 
-    # Export to STEP file
     export_step(result_obj, "{step_output_path}")
     print(json.dumps({{"success": True}}))
 
@@ -348,12 +361,21 @@ except Exception as e:
 
             if not parts:
                 # Read first few lines of STEP file for debugging
-                with open(step_output_path, "r") as f:
+                with open(step_output_path) as f:
                     header = f.read(500)
                 raise CadRenderError(
                     f"STEP file imported but returned empty result "
                     f"({step_size} bytes). Header: {header[:200]}..."
                 )
+
+            # Cache the STEP file for reuse
+            import shutil
+
+            cache_dir = Path(tempfile.gettempdir()) / "cad_cache"
+            cache_dir.mkdir(exist_ok=True)
+            cached_step = cache_dir / f"{code_hash}.step"
+            shutil.copy2(step_output_path, cached_step)
+            self._step_cache[code_hash] = cached_step
 
             return parts
 

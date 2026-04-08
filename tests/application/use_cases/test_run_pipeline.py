@@ -1,16 +1,14 @@
 """Tests for RunPipelineUseCase."""
 
+import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock
-import tempfile
 
-import pytest
-
+from application.dto.pipeline_result import MetricStatistics
 from application.use_cases.run_pipeline import (
     PipelineRequest,
     RunPipelineUseCase,
 )
-from application.dto.pipeline_result import MetricStatistics
 
 
 class TestPipelineRequest:

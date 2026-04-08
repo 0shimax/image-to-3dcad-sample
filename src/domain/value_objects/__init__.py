@@ -5,8 +5,8 @@ from domain.value_objects.code_validation_result import (
     CodeValidationIssue,
     CodeValidationResult,
 )
-from domain.value_objects.multiview_image import MultiviewImage
 from domain.value_objects.euler_characteristic import EulerCharacteristic
+from domain.value_objects.multiview_image import MultiviewImage
 
 __all__ = [
     "CadCode",

@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from domain.value_objects.cad_code import CadCode
-from domain.value_objects.multiview_image import MultiviewImage
 from domain.value_objects.euler_characteristic import EulerCharacteristic
+from domain.value_objects.multiview_image import MultiviewImage
 
 
 class TestCadCode:

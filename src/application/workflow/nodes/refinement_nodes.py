@@ -1,17 +1,18 @@
 """Refinement workflow nodes for feedback-loop CAD generation."""
 
+import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from application.workflow.workflow_state import IterationState, RefinementState
 from domain.value_objects.cad_code import CadCode
 from domain.value_objects.technical_drawing_image import TechnicalDrawingImage
-from application.workflow.workflow_state import RefinementState, IterationState
 
 if TYPE_CHECKING:
+    from domain.repositories.few_shot_repository import FewShotRepository
+    from domain.services.cad_evaluator import CadEvaluatorService
     from domain.services.cad_generator import CadGeneratorService
     from domain.services.cad_renderer import CadRendererService
-    from domain.services.cad_evaluator import CadEvaluatorService
-    from domain.repositories.few_shot_repository import FewShotRepository
 
 
 async def initialize_refinement_node(
@@ -30,7 +31,7 @@ async def initialize_refinement_node(
     Returns:
         Updated state with initial CAD code.
     """
-    print(f"[INIT] Generating initial CAD code...")
+    print("[INIT] Generating initial CAD code...")
 
     pdf_path = Path(state["input_pdf_path"])
     model_name = state["model_name"]
@@ -230,7 +231,7 @@ async def finalize_refinement_node(
     Returns:
         Updated state with final results.
     """
-    print(f"[FINALIZE] Finalizing refinement process...")
+    print("[FINALIZE] Finalizing refinement process...")
 
     output_dir = Path(state["output_dir"])
     model_name = state["model_name"]
@@ -292,14 +293,13 @@ async def finalize_refinement_node(
         # Reuse iteration_0 renders as final result
         iter_0_dir = output_dir / "iteration_0"
         if iter_0_dir.exists():
-            import shutil
             try:
                 # Copy iteration_0 renders to final directory
                 for src_file in iter_0_dir.glob("*"):
                     if src_file.is_file():
                         dst_file = final_dir / src_file.name
                         shutil.copy2(src_file, dst_file)
-                print(f"[FINALIZE] Reused iteration_0 renders as final (no-feedback mode)")
+                print("[FINALIZE] Reused iteration_0 renders as final (no-feedback mode)")
             except Exception as e:
                 print(f"[FINALIZE] Warning: Failed to copy iteration_0 renders: {e}")
                 # Fallback to re-rendering

@@ -76,7 +76,7 @@ class VlmClient:
             location=self._location,
         )
 
-        print(f"[VlmClient] Initialized with Vertex AI")
+        print("[VlmClient] Initialized with Vertex AI")
         print(f"[VlmClient]   Model: {self._model_name}")
         print(f"[VlmClient]   Project: {self._project}")
         print(f"[VlmClient]   Location: {self._location}")
@@ -102,7 +102,7 @@ class VlmClient:
 
     def _get_file_hash(self, file_path: Path) -> str:
         """Get hash of file."""
-        return hashlib.md5(file_path.read_bytes()).hexdigest()
+        return hashlib.sha256(file_path.read_bytes()).hexdigest()
 
     def _get_cached_response(self, cache_key: str) -> str | None:
         """Get cached response if exists."""
@@ -137,7 +137,7 @@ class VlmClient:
         return (
             "429" in error_str
             or "resource_exhausted" in error_str
-            or "rate" in error_str and "limit" in error_str
+            or ("rate" in error_str and "limit" in error_str)
             or "quota" in error_str
         )
 
@@ -161,7 +161,7 @@ class VlmClient:
                     ),
                     timeout=timeout,
                 )
-                print(f"[VLM] API response received")
+                print("[VLM] API response received")
                 return response.text
             except Exception as e:
                 last_error = e

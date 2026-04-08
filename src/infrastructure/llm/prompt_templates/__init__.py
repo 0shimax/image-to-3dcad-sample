@@ -7,8 +7,8 @@ from infrastructure.llm.prompt_templates.cad_generation import (
     BUILD123D_SYSTEM_PROMPT,
 )
 from infrastructure.llm.prompt_templates.technical_drawing import (
-    build_technical_drawing_with_examples_prompt,
     TECHNICAL_DRAWING_SYSTEM_PROMPT,
+    build_technical_drawing_with_examples_prompt,
 )
 
 __all__ = [

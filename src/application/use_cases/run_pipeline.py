@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 import numpy as np
 
@@ -20,9 +21,7 @@ from application.use_cases.evaluate_model import EvaluateModelUseCase
 from application.use_cases.refine_cad_from_pdf import (
     RefineCadFromPdfUseCase,
     RefinementRequest,
-    RefinementResult,
 )
-from application.dto.evaluation_result import EvaluationResult
 
 
 @dataclass
@@ -81,33 +80,49 @@ class RunPipelineUseCase:
 
         request.output_dir.mkdir(parents=True, exist_ok=True)
 
-        results: list[PipelineModelResult] = []
         total = len(pairs)
+        sem = asyncio.Semaphore(4)
 
-        for idx, (image_path, step_path, model_name) in enumerate(pairs):
+        async def _process_with_progress(
+            idx: int,
+            image_path: Path,
+            step_path: Path,
+            model_name: str,
+        ) -> PipelineModelResult:
             if self._progress_callback:
-                self._progress_callback(model_name, idx + 1, total)
+                self._progress_callback(
+                    model_name, idx + 1, total
+                )
 
             model_output_dir = request.output_dir / model_name
 
             if request.skip_existing:
-                existing_result = self._load_existing_result(
-                    model_name, image_path, step_path, model_output_dir
+                existing = self._load_existing_result(
+                    model_name,
+                    image_path,
+                    step_path,
+                    model_output_dir,
                 )
-                if existing_result is not None:
-                    results.append(existing_result)
-                    continue
+                if existing is not None:
+                    return existing
 
-            result = await self._process_single_model(
-                image_path=image_path,
-                step_path=step_path,
-                model_name=model_name,
-                output_dir=model_output_dir,
-                request=request,
+            async with sem:
+                return await self._process_single_model(
+                    image_path=image_path,
+                    step_path=step_path,
+                    model_name=model_name,
+                    output_dir=model_output_dir,
+                    request=request,
+                )
+
+        results = await asyncio.gather(
+            *(
+                _process_with_progress(idx, img, stp, name)
+                for idx, (img, stp, name) in enumerate(pairs)
             )
-            results.append(result)
+        )
 
-        summary = self._calculate_summary(results)
+        summary = self._calculate_summary(list(results))
 
         return PipelineResult(
             method="simple",
@@ -234,19 +249,7 @@ class RunPipelineUseCase:
                 )
             )
 
-            self._save_result_metadata(
-                output_dir=output_dir,
-                model_name=model_name,
-                image_path=image_path,
-                step_path=step_path,
-                generated_step_path=generated_step_path,
-                generated_code_path=generated_code_path,
-                eval_result=eval_result,
-                refinement_result=refinement_result,
-                generation_time=generation_time,
-            )
-
-            return PipelineModelResult(
+            model_result = PipelineModelResult(
                 model_name=model_name,
                 image_path=str(image_path),
                 ground_truth_path=str(step_path),
@@ -265,6 +268,11 @@ class RunPipelineUseCase:
                 generation_time_seconds=generation_time,
                 error=None,
             )
+
+            self._save_result_metadata(
+                output_dir, model_result
+            )
+            return model_result
 
         except Exception as e:
             generation_time = time.time() - start_time
@@ -293,71 +301,21 @@ class RunPipelineUseCase:
         try:
             with open(result_file, encoding="utf-8") as f:
                 data = json.load(f)
-
-            return PipelineModelResult(
-                model_name=model_name,
-                image_path=str(image_path),
-                ground_truth_path=str(step_path),
-                generated_step_path=data.get("generated_step_path"),
-                generated_code_path=data.get("generated_code_path"),
-                pcd=data.get("pcd"),
-                hdd=data.get("hdd"),
-                iou=data.get("iou"),
-                dsc=data.get("dsc"),
-                topology_error=data.get("topology_error"),
-                topology_correct=data.get("topology_correct"),
-                vlm_score=data.get("vlm_score"),
-                total_iterations=data.get("total_iterations"),
-                generation_time_seconds=data.get(
-                    "generation_time_seconds", 0.0
-                ),
-                error=data.get("error"),
-            )
-        except (json.JSONDecodeError, KeyError):
+            return PipelineModelResult.model_validate(data)
+        except (json.JSONDecodeError, KeyError, ValueError):
             return None
 
     def _save_result_metadata(
         self,
         output_dir: Path,
-        model_name: str,
-        image_path: Path,
-        step_path: Path,
-        generated_step_path: Path | None,
-        generated_code_path: Path | None,
-        eval_result: EvaluationResult | None,
-        refinement_result: RefinementResult,
-        generation_time: float,
+        model_result: PipelineModelResult,
     ) -> None:
         """Save result metadata to JSON file."""
-        result_data = {
-            "model_name": model_name,
-            "image_path": str(image_path),
-            "ground_truth_path": str(step_path),
-            "generated_step_path": str(generated_step_path)
-            if generated_step_path
-            else None,
-            "generated_code_path": str(generated_code_path)
-            if generated_code_path
-            else None,
-            "pcd": eval_result.pcd if eval_result else None,
-            "hdd": eval_result.hdd if eval_result else None,
-            "iou": eval_result.iou if eval_result else None,
-            "dsc": eval_result.dsc if eval_result else None,
-            "topology_error": (
-                eval_result.topology_error if eval_result else None
-            ),
-            "topology_correct": (
-                eval_result.topology_correct if eval_result else None
-            ),
-            "vlm_score": refinement_result.final_score,
-            "total_iterations": refinement_result.total_iterations,
-            "generation_time_seconds": generation_time,
-            "error": None,
-        }
-
         result_file = output_dir / "result.json"
         with open(result_file, "w", encoding="utf-8") as f:
-            json.dump(result_data, f, indent=2)
+            json.dump(
+                model_result.model_dump(), f, indent=2
+            )
 
     def _calculate_summary(
         self, results: list[PipelineModelResult]

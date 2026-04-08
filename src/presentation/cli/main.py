@@ -1,26 +1,26 @@
 """Main CLI entry point for Image-to-3DCAD."""
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import argparse
 import asyncio
+import sys
 from datetime import datetime
 from pathlib import Path
-import sys
 
+from application.services.report_generator import ReportGenerator
 from application.use_cases.evaluate_model import EvaluateModelUseCase
 from application.use_cases.refine_cad_from_pdf import RefineCadFromPdfUseCase
 from application.use_cases.run_pipeline import (
-    RunPipelineUseCase,
     PipelineRequest,
+    RunPipelineUseCase,
 )
-from application.services.report_generator import ReportGenerator
-
-from infrastructure.llm.vlm_client import VlmClient
-from infrastructure.llm.cad_generator_impl import CadGeneratorServiceImpl
-from infrastructure.llm.cad_evaluator_impl import CadEvaluatorServiceImpl
 from infrastructure.cad.renderer_impl import CadRendererServiceImpl
+from infrastructure.llm.cad_evaluator_impl import CadEvaluatorServiceImpl
+from infrastructure.llm.cad_generator_impl import CadGeneratorServiceImpl
+from infrastructure.llm.vlm_client import VlmClient
 from infrastructure.repositories.few_shot_repository_impl import (
     FewShotRepositoryImpl,
 )
@@ -204,29 +204,29 @@ async def run_pipeline(args: argparse.Namespace) -> None:
             print("-" * 60)
 
             s = result.summary.pcd_stats
-            print(f"\nPCD (Point Cloud Distance) - lower is better:")
+            print("\nPCD (Point Cloud Distance) - lower is better:")
             print(f"  Mean: {s.mean:.4f}, Std: {s.std:.4f}")
 
             if result.summary.hdd_stats:
                 s = result.summary.hdd_stats
                 print(
-                    f"\nHDD (Hausdorff Distance) - lower is better:"
+                    "\nHDD (Hausdorff Distance) - lower is better:"
                 )
                 print(f"  Mean: {s.mean:.4f}, Std: {s.std:.4f}")
 
             if result.summary.iou_stats:
                 s = result.summary.iou_stats
                 print(
-                    f"\nIoU (Intersection over Union) "
-                    f"- higher is better:"
+                    "\nIoU (Intersection over Union) "
+                    "- higher is better:"
                 )
                 print(f"  Mean: {s.mean:.4f}, Std: {s.std:.4f}")
 
             if result.summary.dsc_stats:
                 s = result.summary.dsc_stats
                 print(
-                    f"\nDSC (Dice Similarity Coefficient) "
-                    f"- higher is better:"
+                    "\nDSC (Dice Similarity Coefficient) "
+                    "- higher is better:"
                 )
                 print(f"  Mean: {s.mean:.4f}, Std: {s.std:.4f}")
 

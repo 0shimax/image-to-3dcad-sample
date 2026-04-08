@@ -1,10 +1,10 @@
 """Tests for pipeline result DTO."""
 
 from application.dto.pipeline_result import (
-    PipelineResult,
-    PipelineModelResult,
-    PipelineSummary,
     MetricStatistics,
+    PipelineModelResult,
+    PipelineResult,
+    PipelineSummary,
 )
 
 

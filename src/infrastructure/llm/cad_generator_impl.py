@@ -5,13 +5,11 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from domain.services.cad_generator import CadGeneratorService
+from domain.repositories.few_shot_repository import FewShotRepository
 from domain.services.cad_code_validator import Build123dCodeValidator
+from domain.services.cad_generator import CadGeneratorService
 from domain.value_objects.cad_code import CadCode
 from domain.value_objects.technical_drawing_image import TechnicalDrawingImage
-from domain.repositories.few_shot_repository import FewShotRepository
-
-from infrastructure.llm.vlm_client import VlmClient
 from infrastructure.llm.prompt_templates.cad_generation import (
     BUILD123D_SYSTEM_PROMPT,
 )
@@ -19,6 +17,7 @@ from infrastructure.llm.prompt_templates.technical_drawing import (
     TECHNICAL_DRAWING_SYSTEM_PROMPT,
     build_technical_drawing_with_examples_prompt,
 )
+from infrastructure.llm.vlm_client import VlmClient
 
 if TYPE_CHECKING:
     from domain.services.cad_renderer import CadRendererService
@@ -157,7 +156,7 @@ class CadGeneratorServiceImpl(CadGeneratorService):
                     f"[FIX] Candidate {candidate_index} (attempt {attempt + 1}): "
                     f"{error_message}"
                 )
-                print(f"[FIX] Attempting to fix code...")
+                print("[FIX] Attempting to fix code...")
 
                 # Enhance error message with static analysis context
                 static_check = self._static_validator.validate(current_code.code)

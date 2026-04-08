@@ -2,16 +2,15 @@
 
 from pathlib import Path
 
-from domain.services.cad_renderer import CadRendererService
-from domain.services.metrics_calculator import MetricsCalculatorService
-from domain.value_objects.cad_code import CadCode
-
 from application.dto.evaluation_result import (
     CadStructureMetricsDTO,
     EvaluationResult,
     ExtrusionAccuracyDTO,
     SketchPrimitiveAccuracyDTO,
 )
+from domain.services.cad_renderer import CadRendererService
+from domain.services.metrics_calculator import MetricsCalculatorService
+from domain.value_objects.cad_code import CadCode
 
 
 class EvaluateModelUseCase:
