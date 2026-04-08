@@ -23,9 +23,7 @@ class ExtrusionAccuracyDTO(BaseModel):
 class CadStructureMetricsDTO(BaseModel):
     """DTO for Drawing2CAD-style CAD structure metrics."""
 
-    command_accuracy: float = Field(
-        ..., ge=0.0, le=1.0, description="Command accuracy"
-    )
+    command_accuracy: float = Field(..., ge=0.0, le=1.0, description="Command accuracy")
     sketch_primitive: SketchPrimitiveAccuracyDTO = Field(
         ..., description="Sketch primitive accuracy"
     )
@@ -52,12 +50,17 @@ class EvaluationResult(BaseModel):
     hdd: float = Field(..., description="Hausdorff Distance")
     iou: float = Field(..., ge=0.0, le=1.0, description="Intersection over Union")
     dsc: float = Field(..., ge=0.0, le=1.0, description="Dice Similarity Coefficient")
-    topology_error: int | None = Field(default=None, ge=0, description="Absolute Euler characteristic difference |gen - gt| (or null if not calculable)")
-    topology_correct: float | None = Field(default=None, description="Topology correctness: 1.0 if Euler match, 0.0 otherwise (or null if not calculable)")
-    generated_euler: int | None = Field(default=None, description="Generated Euler")
-    ground_truth_euler: int | None = Field(
-        default=None, description="Ground Truth Euler"
+    topology_error: int | None = Field(
+        default=None,
+        ge=0,
+        description="Absolute Euler characteristic difference |gen - gt| (or null if not calculable)",
     )
+    topology_correct: float | None = Field(
+        default=None,
+        description="Topology correctness: 1.0 if Euler match, 0.0 otherwise (or null if not calculable)",
+    )
+    generated_euler: int | None = Field(default=None, description="Generated Euler")
+    ground_truth_euler: int | None = Field(default=None, description="Ground Truth Euler")
     cad_structure: CadStructureMetricsDTO | None = Field(
         default=None, description="Drawing2CAD structure metrics"
     )

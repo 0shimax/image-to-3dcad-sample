@@ -260,8 +260,7 @@ async def finalize_refinement_node(
         final_code = state["current_code"]
         final_score = state.get("current_score", 0.0)
         print(
-            f"[FINALIZE] No valid history, "
-            f"using current code (score: {final_score:.2f})"
+            f"[FINALIZE] No valid history, using current code (score: {final_score:.2f})"
         )
 
     # Save final code
@@ -311,7 +310,9 @@ async def finalize_refinement_node(
                     )
                     print(f"[FINALIZE] Final renders saved to: {final_dir}")
                 except Exception as render_e:
-                    print(f"[FINALIZE] Warning: Failed to render final images: {render_e}")
+                    print(
+                        f"[FINALIZE] Warning: Failed to render final images: {render_e}"
+                    )
         else:
             # iteration_0 directory doesn't exist, render normally
             try:

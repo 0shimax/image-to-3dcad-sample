@@ -48,9 +48,7 @@ class ReportGenerator:
         lines.append(f"- Total: {result.summary.total_models}")
         lines.append(f"- Successful: {result.summary.successful}")
         lines.append(f"- Failed: {result.summary.failed}")
-        lines.append(
-            f"- Success Rate: {result.summary.success_rate * 100:.2f}%"
-        )
+        lines.append(f"- Success Rate: {result.summary.success_rate * 100:.2f}%")
         if result.summary.avg_generation_time is not None:
             lines.append(
                 f"- Average Generation Time: {result.summary.avg_generation_time:.2f}s"
@@ -60,12 +58,8 @@ class ReportGenerator:
         # Metrics Summary table
         lines.append("## Metrics Summary")
         lines.append("")
-        lines.append(
-            "| Metric | Mean | Std | Min | Max | Median |"
-        )
-        lines.append(
-            "|--------|------|-----|-----|-----|--------|"
-        )
+        lines.append("| Metric | Mean | Std | Min | Max | Median |")
+        lines.append("|--------|------|-----|-----|-----|--------|")
 
         metrics = [
             ("PCD", result.summary.pcd_stats),
@@ -88,12 +82,8 @@ class ReportGenerator:
         # Individual Results table
         lines.append("## Individual Results")
         lines.append("")
-        lines.append(
-            "| Model | PCD | HDD | IoU | DSC | Time (s) | Status |"
-        )
-        lines.append(
-            "|-------|-----|-----|-----|-----|----------|--------|"
-        )
+        lines.append("| Model | PCD | HDD | IoU | DSC | Time (s) | Status |")
+        lines.append("|-------|-----|-----|-----|-----|----------|--------|")
 
         for model_result in result.results:
             pcd = f"{model_result.pcd:.4f}" if model_result.pcd is not None else "N/A"

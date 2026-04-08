@@ -90,9 +90,7 @@ class RunPipelineUseCase:
             model_name: str,
         ) -> PipelineModelResult:
             if self._progress_callback:
-                self._progress_callback(
-                    model_name, idx + 1, total
-                )
+                self._progress_callback(model_name, idx + 1, total)
 
             model_output_dir = request.output_dir / model_name
 
@@ -132,9 +130,7 @@ class RunPipelineUseCase:
             summary=summary,
         )
 
-    def _discover_file_pairs(
-        self, input_dir: Path
-    ) -> list[tuple[Path, Path, str]]:
+    def _discover_file_pairs(self, input_dir: Path) -> list[tuple[Path, Path, str]]:
         """
         Discover image/step file pairs in paired format.
 
@@ -156,30 +152,20 @@ class RunPipelineUseCase:
         image_extensions = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".pdf"}
         images_by_name: dict[str, Path] = {}
         for img_file in images_dir.iterdir():
-            if (
-                img_file.is_file()
-                and img_file.suffix.lower() in image_extensions
-            ):
+            if img_file.is_file() and img_file.suffix.lower() in image_extensions:
                 images_by_name[img_file.stem] = img_file
 
         step_extensions = {".step", ".stp"}
         steps_by_name: dict[str, Path] = {}
         for step_file in step_dir.iterdir():
-            if (
-                step_file.is_file()
-                and step_file.suffix.lower() in step_extensions
-            ):
+            if step_file.is_file() and step_file.suffix.lower() in step_extensions:
                 steps_by_name[step_file.stem] = step_file
 
         pairs: list[tuple[Path, Path, str]] = []
-        common_names = set(images_by_name.keys()) & set(
-            steps_by_name.keys()
-        )
+        common_names = set(images_by_name.keys()) & set(steps_by_name.keys())
 
         for name in sorted(common_names):
-            pairs.append(
-                (images_by_name[name], steps_by_name[name], name)
-            )
+            pairs.append((images_by_name[name], steps_by_name[name], name))
 
         return pairs
 
@@ -204,9 +190,7 @@ class RunPipelineUseCase:
                 temperature=request.temperature,
                 enable_feedback_loop=False,
             )
-            refinement_result = await self._refine_use_case.execute(
-                refinement_request
-            )
+            refinement_result = await self._refine_use_case.execute(refinement_request)
 
             generation_time = time.time() - start_time
 
@@ -224,10 +208,7 @@ class RunPipelineUseCase:
             generated_step_path = refinement_result.step_path
             generated_code_path = refinement_result.code_path
 
-            if (
-                generated_step_path is None
-                or not generated_step_path.exists()
-            ):
+            if generated_step_path is None or not generated_step_path.exists():
                 return PipelineModelResult(
                     model_name=model_name,
                     image_path=str(image_path),
@@ -242,11 +223,9 @@ class RunPipelineUseCase:
                     error="Failed to generate STEP file",
                 )
 
-            eval_result = (
-                await self._evaluate_use_case.evaluate_step_files(
-                    generated_step_path=generated_step_path,
-                    ground_truth_step_path=step_path,
-                )
+            eval_result = await self._evaluate_use_case.evaluate_step_files(
+                generated_step_path=generated_step_path,
+                ground_truth_step_path=step_path,
             )
 
             model_result = PipelineModelResult(
@@ -269,9 +248,7 @@ class RunPipelineUseCase:
                 error=None,
             )
 
-            self._save_result_metadata(
-                output_dir, model_result
-            )
+            self._save_result_metadata(output_dir, model_result)
             return model_result
 
         except Exception as e:
@@ -313,13 +290,9 @@ class RunPipelineUseCase:
         """Save result metadata to JSON file."""
         result_file = output_dir / "result.json"
         with open(result_file, "w", encoding="utf-8") as f:
-            json.dump(
-                model_result.model_dump(), f, indent=2
-            )
+            json.dump(model_result.model_dump(), f, indent=2)
 
-    def _calculate_summary(
-        self, results: list[PipelineModelResult]
-    ) -> PipelineSummary:
+    def _calculate_summary(self, results: list[PipelineModelResult]) -> PipelineSummary:
         """Calculate summary statistics from results."""
         total = len(results)
         successful = sum(1 for r in results if r.error is None)
@@ -330,9 +303,7 @@ class RunPipelineUseCase:
         iou_values = [r.iou for r in results if r.iou is not None]
         dsc_values = [r.dsc for r in results if r.dsc is not None]
         topology_error_values = [
-            r.topology_error
-            for r in results
-            if r.topology_error is not None
+            r.topology_error for r in results if r.topology_error is not None
         ]
         generation_times = [r.generation_time_seconds for r in results]
 
@@ -353,9 +324,7 @@ class RunPipelineUseCase:
             else None,
         )
 
-    def _calc_stats(
-        self, values: list[float]
-    ) -> MetricStatistics | None:
+    def _calc_stats(self, values: list[float]) -> MetricStatistics | None:
         """Calculate statistics for a list of values."""
         if not values:
             return None

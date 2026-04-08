@@ -8,8 +8,13 @@ def test_pipeline_help() -> None:
     """Test pipeline help command."""
     result = subprocess.run(
         [
-            "uv", "run", "python", "-m",
-            "presentation.cli.main", "pipeline", "--help",
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "presentation.cli.main",
+            "pipeline",
+            "--help",
         ],
         capture_output=True,
         text=True,
@@ -39,9 +44,14 @@ def test_pipeline_invalid_input_directory() -> None:
     """Test pipeline with non-existent input directory."""
     result = subprocess.run(
         [
-            "uv", "run", "python", "-m",
-            "presentation.cli.main", "pipeline",
-            "--input", "/nonexistent/path/to/data",
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "presentation.cli.main",
+            "pipeline",
+            "--input",
+            "/nonexistent/path/to/data",
         ],
         capture_output=True,
         text=True,

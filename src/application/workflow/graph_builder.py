@@ -87,15 +87,11 @@ def create_refinement_graph(
         """Determine if refinement should continue."""
         config = state["config"]
         current_score = state.get("current_score", 0.0)
-        current_iteration = state.get(
-            "current_iteration", 0
-        )
+        current_iteration = state.get("current_iteration", 0)
 
         score_threshold = config.get("score_threshold", 0.8)
         max_iterations = config.get("max_iterations", 10)
-        enable_feedback_loop = config.get(
-            "enable_feedback_loop", True
-        )
+        enable_feedback_loop = config.get("enable_feedback_loop", True)
 
         if not enable_feedback_loop:
             return "finalize"

@@ -12,38 +12,38 @@ from domain.repositories.few_shot_repository import (
 DEFAULT_EXAMPLES = [
     FewShotExample(
         description="A simple cube with side length 10mm",
-        code='''from build123d import *
+        code="""from build123d import *
 
 with BuildPart() as part:
     Box(10, 10, 10)
 
 result = part.part
-''',
+""",
     ),
     FewShotExample(
         description="A cylinder with radius 5mm and height 20mm",
-        code='''from build123d import *
+        code="""from build123d import *
 
 with BuildPart() as part:
     Cylinder(radius=5, height=20)
 
 result = part.part
-''',
+""",
     ),
     FewShotExample(
         description="A box with a cylindrical hole through the center",
-        code='''from build123d import *
+        code="""from build123d import *
 
 with BuildPart() as part:
     Box(30, 30, 10)
     Cylinder(radius=5, height=10, mode=Mode.SUBTRACT)
 
 result = part.part
-''',
+""",
     ),
     FewShotExample(
         description="An L-shaped bracket",
-        code='''from build123d import *
+        code="""from build123d import *
 
 with BuildPart() as part:
     with BuildSketch() as sketch:
@@ -54,31 +54,31 @@ with BuildPart() as part:
     extrude(amount=10)
 
 result = part.part
-''',
+""",
     ),
     FewShotExample(
         description="A cone with base radius 10mm and height 25mm",
-        code='''from build123d import *
+        code="""from build123d import *
 
 with BuildPart() as part:
     Cone(bottom_radius=10, top_radius=0, height=25)
 
 result = part.part
-''',
+""",
     ),
     FewShotExample(
         description="A sphere with radius 15mm",
-        code='''from build123d import *
+        code="""from build123d import *
 
 with BuildPart() as part:
     Sphere(radius=15)
 
 result = part.part
-''',
+""",
     ),
     FewShotExample(
         description="A rectangular plate with four corner holes",
-        code='''from build123d import *
+        code="""from build123d import *
 
 with BuildPart() as part:
     Box(100, 60, 5)
@@ -89,21 +89,21 @@ with BuildPart() as part:
         Cylinder(radius=3, height=5, mode=Mode.SUBTRACT)
 
 result = part.part
-''',
+""",
     ),
     FewShotExample(
         description="A torus (donut shape) with major radius 20mm and minor radius 5mm",
-        code='''from build123d import *
+        code="""from build123d import *
 
 with BuildPart() as part:
     Torus(major_radius=20, minor_radius=5)
 
 result = part.part
-''',
+""",
     ),
     FewShotExample(
         description="A hexagonal prism with circumradius 15mm and height 30mm",
-        code='''from build123d import *
+        code="""from build123d import *
 
 with BuildPart() as part:
     with BuildSketch() as sketch:
@@ -111,18 +111,18 @@ with BuildPart() as part:
     extrude(amount=30)
 
 result = part.part
-''',
+""",
     ),
     FewShotExample(
         description="A box with rounded edges (filleted)",
-        code='''from build123d import *
+        code="""from build123d import *
 
 with BuildPart() as part:
     Box(40, 30, 20)
     fillet(part.edges(), radius=3)
 
 result = part.part
-''',
+""",
     ),
 ]
 

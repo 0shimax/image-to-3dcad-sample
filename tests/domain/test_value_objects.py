@@ -89,9 +89,7 @@ class TestEulerCharacteristic:
         assert torus.genus() == 1
 
     def test_to_dict(self) -> None:
-        euler = EulerCharacteristic(
-            value=2, vertices=8, edges=12, faces=6
-        )
+        euler = EulerCharacteristic(value=2, vertices=8, edges=12, faces=6)
         data = euler.to_dict()
         assert data["value"] == 2
         assert data["vertices"] == 8

@@ -32,16 +32,11 @@ from infrastructure.services.metrics_calculator_impl import (
 def create_parser() -> argparse.ArgumentParser:
     """Create argument parser."""
     parser = argparse.ArgumentParser(
-        description=(
-            "Image-to-3DCAD: "
-            "VLMを用いた画像からのCADコード生成パイプライン"
-        ),
+        description=("Image-to-3DCAD: VLMを用いた画像からのCADコード生成パイプライン"),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    subparsers = parser.add_subparsers(
-        dest="command", help="Available commands"
-    )
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # pipeline command
     pipeline_parser = subparsers.add_parser(
@@ -53,20 +48,14 @@ def create_parser() -> argparse.ArgumentParser:
         "-i",
         type=Path,
         required=True,
-        help=(
-            "Input directory "
-            "(paired format with images/ and step/)"
-        ),
+        help=("Input directory (paired format with images/ and step/)"),
     )
     pipeline_parser.add_argument(
         "--output-dir",
         "-o",
         type=Path,
         default=None,
-        help=(
-            "Output directory "
-            "(default: data/output/pipeline_{timestamp})"
-        ),
+        help=("Output directory (default: data/output/pipeline_{timestamp})"),
     )
     pipeline_parser.add_argument(
         "--limit",
@@ -92,9 +81,7 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def progress_callback(
-    message: str, current: int, total: int
-) -> None:
+def progress_callback(message: str, current: int, total: int) -> None:
     """Print progress updates."""
     print(f"[{current}/{total}] {message}")
 
@@ -126,19 +113,14 @@ async def run_pipeline(args: argparse.Namespace) -> None:
     images_dir = args.input / "images"
     step_dir = args.input / "step"
     if not images_dir.exists() or not step_dir.exists():
-        print(
-            "Error: Input directory must contain "
-            "'images/' and 'step/' subdirectories"
-        )
+        print("Error: Input directory must contain 'images/' and 'step/' subdirectories")
         sys.exit(1)
 
     # Create service dependencies
     vlm_client = VlmClient(model_name=args.model)
     few_shot_repository = FewShotRepositoryImpl()
     cad_renderer = CadRendererServiceImpl()
-    cad_generator = CadGeneratorServiceImpl(
-        vlm_client, few_shot_repository, cad_renderer
-    )
+    cad_generator = CadGeneratorServiceImpl(vlm_client, few_shot_repository, cad_renderer)
     cad_evaluator = CadEvaluatorServiceImpl(vlm_client)
     metrics_calculator = MetricsCalculatorServiceImpl()
 
@@ -187,16 +169,10 @@ async def run_pipeline(args: argparse.Namespace) -> None:
         print(f"Total models: {result.summary.total_models}")
         print(f"Successful: {result.summary.successful}")
         print(f"Failed: {result.summary.failed}")
-        print(
-            f"Success rate: "
-            f"{result.summary.success_rate * 100:.1f}%"
-        )
+        print(f"Success rate: {result.summary.success_rate * 100:.1f}%")
 
         if result.summary.avg_generation_time is not None:
-            print(
-                f"Average generation time: "
-                f"{result.summary.avg_generation_time:.2f}s"
-            )
+            print(f"Average generation time: {result.summary.avg_generation_time:.2f}s")
 
         if result.summary.pcd_stats:
             print("\n" + "-" * 60)
@@ -209,25 +185,17 @@ async def run_pipeline(args: argparse.Namespace) -> None:
 
             if result.summary.hdd_stats:
                 s = result.summary.hdd_stats
-                print(
-                    "\nHDD (Hausdorff Distance) - lower is better:"
-                )
+                print("\nHDD (Hausdorff Distance) - lower is better:")
                 print(f"  Mean: {s.mean:.4f}, Std: {s.std:.4f}")
 
             if result.summary.iou_stats:
                 s = result.summary.iou_stats
-                print(
-                    "\nIoU (Intersection over Union) "
-                    "- higher is better:"
-                )
+                print("\nIoU (Intersection over Union) - higher is better:")
                 print(f"  Mean: {s.mean:.4f}, Std: {s.std:.4f}")
 
             if result.summary.dsc_stats:
                 s = result.summary.dsc_stats
-                print(
-                    "\nDSC (Dice Similarity Coefficient) "
-                    "- higher is better:"
-                )
+                print("\nDSC (Dice Similarity Coefficient) - higher is better:")
                 print(f"  Mean: {s.mean:.4f}, Std: {s.std:.4f}")
 
         print("\n" + "-" * 60)

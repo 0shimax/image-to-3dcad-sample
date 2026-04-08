@@ -55,21 +55,13 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
         loop = asyncio.get_running_loop()
 
         # Load each STEP file once (concurrent)
-        (gen_points, gen_euler), (gt_points, gt_euler) = (
-            await asyncio.gather(
-                loop.run_in_executor(
-                    None, self._load_and_sample, generated_step_path
-                ),
-                loop.run_in_executor(
-                    None, self._load_and_sample, ground_truth_step_path
-                ),
-            )
+        (gen_points, gen_euler), (gt_points, gt_euler) = await asyncio.gather(
+            loop.run_in_executor(None, self._load_and_sample, generated_step_path),
+            loop.run_in_executor(None, self._load_and_sample, ground_truth_step_path),
         )
 
         # Normalize and align once
-        gen_points, gt_points = self._normalize_and_align(
-            gen_points, gt_points
-        )
+        gen_points, gt_points = self._normalize_and_align(gen_points, gt_points)
 
         # Build KD-trees once for PCD and HDD
         gen_tree = cKDTree(gen_points)
@@ -77,12 +69,8 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
         gen_to_gt_dists, _ = gt_tree.query(gen_points)
         gt_to_gen_dists, _ = gen_tree.query(gt_points)
 
-        pcd = float(
-            np.mean(gen_to_gt_dists) + np.mean(gt_to_gen_dists)
-        )
-        hdd = float(
-            max(np.max(gen_to_gt_dists), np.max(gt_to_gen_dists))
-        )
+        pcd = float(np.mean(gen_to_gt_dists) + np.mean(gt_to_gen_dists))
+        hdd = float(max(np.max(gen_to_gt_dists), np.max(gt_to_gen_dists)))
 
         # Voxelize once for IoU and DSC
         gen_voxels = self._voxelize_from_points(gen_points)
@@ -100,10 +88,8 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
             else 0.0
         )
 
-        topology_error, topology_correct = (
-            await self.calculate_topology_metrics(
-                gen_euler, gt_euler
-            )
+        topology_error, topology_correct = await self.calculate_topology_metrics(
+            gen_euler, gt_euler
         )
 
         cad_structure = await self.calculate_cad_structure_metrics(
@@ -213,9 +199,7 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
         """
         loop = asyncio.get_running_loop()
 
-        gen_voxels = await loop.run_in_executor(
-            None, self._voxelize, generated_step_path
-        )
+        gen_voxels = await loop.run_in_executor(None, self._voxelize, generated_step_path)
         gt_voxels = await loop.run_in_executor(
             None, self._voxelize, ground_truth_step_path
         )
@@ -245,9 +229,7 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
         """
         loop = asyncio.get_running_loop()
 
-        gen_voxels = await loop.run_in_executor(
-            None, self._voxelize, generated_step_path
-        )
+        gen_voxels = await loop.run_in_executor(None, self._voxelize, generated_step_path)
         gt_voxels = await loop.run_in_executor(
             None, self._voxelize, ground_truth_step_path
         )
@@ -484,9 +466,7 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
         points, _ = self._load_and_sample(step_path)
         return self._voxelize_from_points(points)
 
-    def _voxelize_from_points(
-        self, points: np.ndarray
-    ) -> np.ndarray:
+    def _voxelize_from_points(self, points: np.ndarray) -> np.ndarray:
         """Voxelize from pre-loaded point cloud."""
         min_coords = np.min(points, axis=0)
         max_coords = np.max(points, axis=0)
@@ -495,12 +475,8 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
         range_coords[range_coords == 0] = 1
 
         normalized = (points - min_coords) / range_coords
-        voxel_indices = (
-            normalized * (self._voxel_resolution - 1)
-        ).astype(int)
-        voxel_indices = np.clip(
-            voxel_indices, 0, self._voxel_resolution - 1
-        )
+        voxel_indices = (normalized * (self._voxel_resolution - 1)).astype(int)
+        voxel_indices = np.clip(voxel_indices, 0, self._voxel_resolution - 1)
 
         voxels = np.zeros(
             (self._voxel_resolution,) * 3,
@@ -542,9 +518,7 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
 
         line_acc = self._calculate_count_accuracy(gen_counts.lines, gt_counts.lines)
         arc_acc = self._calculate_count_accuracy(gen_counts.arcs, gt_counts.arcs)
-        circle_acc = self._calculate_count_accuracy(
-            gen_counts.circles, gt_counts.circles
-        )
+        circle_acc = self._calculate_count_accuracy(gen_counts.circles, gt_counts.circles)
 
         plane_acc = self._calculate_count_accuracy(
             gen_counts.planar_faces, gt_counts.planar_faces
@@ -564,14 +538,8 @@ class MetricsCalculatorServiceImpl(MetricsCalculatorService):
 
         extrusion_overall = (plane_acc + transform_acc + extent_acc) / 3.0
 
-        total_gen = (
-            gen_counts.total_edges()
-            + gen_counts.total_faces()
-        )
-        total_gt = (
-            gt_counts.total_edges()
-            + gt_counts.total_faces()
-        )
+        total_gen = gen_counts.total_edges() + gen_counts.total_faces()
+        total_gt = gt_counts.total_edges() + gt_counts.total_faces()
         command_acc = self._calculate_count_accuracy(total_gen, total_gt)
 
         return CadStructureMetrics(

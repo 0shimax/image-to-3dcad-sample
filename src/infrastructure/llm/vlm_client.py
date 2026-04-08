@@ -65,9 +65,7 @@ class VlmClient:
             self._cache_dir.mkdir(parents=True, exist_ok=True)
 
         if not self._project:
-            raise ValueError(
-                "GCP_PROJECT_ID must be set in .env or passed as argument"
-            )
+            raise ValueError("GCP_PROJECT_ID must be set in .env or passed as argument")
 
         # Create client with Vertex AI
         self._client = genai.Client(
@@ -174,11 +172,13 @@ class VlmClient:
 
                 if attempt < self._max_retries:
                     delay = min(
-                        self._base_delay * (2 ** attempt) + random.uniform(0, 1),
-                        self._max_delay
+                        self._base_delay * (2**attempt) + random.uniform(0, 1),
+                        self._max_delay,
                     )
-                    print(f"[RETRY] Rate limit hit, waiting {delay:.1f}s "
-                          f"(attempt {attempt + 1}/{self._max_retries})...")
+                    print(
+                        f"[RETRY] Rate limit hit, waiting {delay:.1f}s "
+                        f"(attempt {attempt + 1}/{self._max_retries})..."
+                    )
                     await asyncio.sleep(delay)
 
         raise last_error
@@ -247,9 +247,7 @@ class VlmClient:
                 file_hashes.append(self._get_file_hash(file_path))
 
         # Check cache
-        cache_key = self._get_cache_key(
-            prompt, system_prompt, temperature, file_hashes
-        )
+        cache_key = self._get_cache_key(prompt, system_prompt, temperature, file_hashes)
         cached = self._get_cached_response(cache_key)
         if cached is not None:
             return cached

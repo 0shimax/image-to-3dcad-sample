@@ -43,9 +43,7 @@ class Build123dCodeValidator:
                 CodeValidationIssue(
                     pattern_name="missing_result",
                     severity="error",
-                    message=(
-                        "Missing 'result' variable assignment"
-                    ),
+                    message=("Missing 'result' variable assignment"),
                 )
             )
 
@@ -55,10 +53,7 @@ class Build123dCodeValidator:
                 CodeValidationIssue(
                     pattern_name="lowercase_vector",
                     severity="error",
-                    message=(
-                        "Use uppercase .X, .Y, .Z "
-                        "for Vector properties"
-                    ),
+                    message=("Use uppercase .X, .Y, .Z for Vector properties"),
                 )
             )
 
@@ -68,24 +63,17 @@ class Build123dCodeValidator:
                 CodeValidationIssue(
                     pattern_name="lowercase_rotation",
                     severity="error",
-                    message=(
-                        "Use uppercase kwargs "
-                        "Rotation(X=, Y=, Z=)"
-                    ),
+                    message=("Use uppercase kwargs Rotation(X=, Y=, Z=)"),
                 )
             )
 
-        has_errors = any(
-            i.severity == "error" for i in issues
-        )
+        has_errors = any(i.severity == "error" for i in issues)
         return CodeValidationResult(
             is_valid=not has_errors,
             issues=tuple(issues),
         )
 
-    def validate_and_fix(
-        self, code: str
-    ) -> CodeValidationResult:
+    def validate_and_fix(self, code: str) -> CodeValidationResult:
         """
         Validate and auto-fix build123d code where possible.
 
@@ -109,15 +97,9 @@ class Build123dCodeValidator:
             applied_fixes = True
 
         # Auto-fix lowercase vector attributes
-        fixed_vec = re.sub(
-            r"\.center\(\)\.x\b", ".center().X", fixed
-        )
-        fixed_vec = re.sub(
-            r"\.center\(\)\.y\b", ".center().Y", fixed_vec
-        )
-        fixed_vec = re.sub(
-            r"\.center\(\)\.z\b", ".center().Z", fixed_vec
-        )
+        fixed_vec = re.sub(r"\.center\(\)\.x\b", ".center().X", fixed)
+        fixed_vec = re.sub(r"\.center\(\)\.y\b", ".center().Y", fixed_vec)
+        fixed_vec = re.sub(r"\.center\(\)\.z\b", ".center().Z", fixed_vec)
         if fixed_vec != fixed:
             fixed = fixed_vec
             applied_fixes = True
@@ -131,9 +113,7 @@ class Build123dCodeValidator:
 
         return result
 
-    def format_issues_for_llm(
-        self, result: CodeValidationResult
-    ) -> str:
+    def format_issues_for_llm(self, result: CodeValidationResult) -> str:
         """
         Format validation issues for LLM context.
 
@@ -148,7 +128,5 @@ class Build123dCodeValidator:
 
         lines = ["Static analysis found these issues:"]
         for issue in result.issues:
-            lines.append(
-                f"- [{issue.severity}] {issue.message}"
-            )
+            lines.append(f"- [{issue.severity}] {issue.message}")
         return "\n".join(lines)

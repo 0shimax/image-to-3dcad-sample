@@ -139,9 +139,7 @@ class CadGeneratorServiceImpl(CadGeneratorService):
             current_code = CadCode(code=static_result.fixed_code)
 
         for attempt in range(MAX_FIX_RETRIES + 1):
-            is_valid, error_message = await self._cad_renderer.validate_code(
-                current_code
-            )
+            is_valid, error_message = await self._cad_renderer.validate_code(current_code)
 
             if is_valid:
                 if attempt > 0:
@@ -174,9 +172,7 @@ class CadGeneratorServiceImpl(CadGeneratorService):
                 )
 
                 # Apply static auto-fixes to the LLM-fixed code too
-                fix_result = self._static_validator.validate_and_fix(
-                    current_code.code
-                )
+                fix_result = self._static_validator.validate_and_fix(current_code.code)
                 if fix_result.fixed_code is not None:
                     current_code = CadCode(code=fix_result.fixed_code)
             else:

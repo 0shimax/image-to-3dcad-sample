@@ -114,9 +114,7 @@ class EvaluateModelUseCase:
             cad_structure=cad_structure_dto,
         )
 
-    def _convert_cad_structure(
-        self, cad_structure
-    ) -> CadStructureMetricsDTO | None:
+    def _convert_cad_structure(self, cad_structure) -> CadStructureMetricsDTO | None:
         """
         Convert domain CadStructureMetrics to DTO.
 

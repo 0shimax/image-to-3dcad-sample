@@ -179,9 +179,7 @@ integrity, manufacturability, proper sizing for fasteners, adequate wall thickne
             re.DOTALL | re.IGNORECASE,
         )
         feedback = (
-            feedback_match.group(1).strip()
-            if feedback_match
-            else "No feedback provided"
+            feedback_match.group(1).strip() if feedback_match else "No feedback provided"
         )
 
         return EvaluationResult(

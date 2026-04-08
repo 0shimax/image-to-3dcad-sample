@@ -184,9 +184,9 @@ def build_technical_drawing_with_examples_prompt(
     for i, example in enumerate(few_shot_examples, 1):
         examples_text += f"""
 Example {i}:
-{example['description']}
+{example["description"]}
 ```python
-{example['code']}
+{example["code"]}
 ```
 """
 

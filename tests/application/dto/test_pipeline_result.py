@@ -44,18 +44,10 @@ def test_pipeline_summary_creation():
         successful=8,
         failed=2,
         success_rate=0.8,
-        pcd_stats=MetricStatistics(
-            mean=0.1, std=0.02, min=0.05, max=0.2, median=0.1
-        ),
-        hdd_stats=MetricStatistics(
-            mean=0.2, std=0.03, min=0.1, max=0.3, median=0.2
-        ),
-        iou_stats=MetricStatistics(
-            mean=0.8, std=0.05, min=0.7, max=0.9, median=0.8
-        ),
-        dsc_stats=MetricStatistics(
-            mean=0.85, std=0.04, min=0.75, max=0.95, median=0.85
-        ),
+        pcd_stats=MetricStatistics(mean=0.1, std=0.02, min=0.05, max=0.2, median=0.1),
+        hdd_stats=MetricStatistics(mean=0.2, std=0.03, min=0.1, max=0.3, median=0.2),
+        iou_stats=MetricStatistics(mean=0.8, std=0.05, min=0.7, max=0.9, median=0.8),
+        dsc_stats=MetricStatistics(mean=0.85, std=0.04, min=0.75, max=0.95, median=0.85),
     )
     assert summary.success_rate == 0.8
 

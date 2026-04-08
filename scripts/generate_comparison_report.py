@@ -14,7 +14,7 @@ from typing import Any
 
 import matplotlib
 
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,6 +23,7 @@ import numpy as np
 @dataclass
 class MetricStats:
     """Statistics for a single metric."""
+
     mean: float
     std: float
     min: float
@@ -34,6 +35,7 @@ class MetricStats:
 @dataclass
 class MethodResults:
     """Results for a single method."""
+
     name: str
     success_rate: float
     pcd: MetricStats
@@ -60,21 +62,21 @@ def calculate_stats(values: list[float]) -> MetricStats:
         min=float(np.min(arr)),
         max=float(np.max(arr)),
         median=float(np.median(arr)),
-        values=values
+        values=values,
     )
 
 
 def extract_drawing2cad_results(data: dict[str, Any]) -> MethodResults:
     """Extract results from Drawing2Cad data."""
-    results = data['results']
-    successful = [r for r in results if r.get('success', False)]
+    results = data["results"]
+    successful = [r for r in results if r.get("success", False)]
 
-    pcd_values = [r['shape_metrics']['pcd'] for r in successful]
-    hdd_values = [r['shape_metrics']['hdd'] for r in successful]
-    iou_values = [r['shape_metrics']['iou'] for r in successful]
-    dsc_values = [r['shape_metrics']['dsc'] for r in successful]
+    pcd_values = [r["shape_metrics"]["pcd"] for r in successful]
+    hdd_values = [r["shape_metrics"]["hdd"] for r in successful]
+    iou_values = [r["shape_metrics"]["iou"] for r in successful]
+    dsc_values = [r["shape_metrics"]["dsc"] for r in successful]
 
-    success_rate = data['aggregate']['success_rate']
+    success_rate = data["aggregate"]["success_rate"]
 
     return MethodResults(
         name="Drawing2Cad",
@@ -82,28 +84,25 @@ def extract_drawing2cad_results(data: dict[str, Any]) -> MethodResults:
         pcd=calculate_stats(pcd_values),
         hdd=calculate_stats(hdd_values),
         iou=calculate_stats(iou_values),
-        dsc=calculate_stats(dsc_values)
+        dsc=calculate_stats(dsc_values),
     )
 
 
 def extract_refine_results(data: dict[str, Any]) -> MethodResults:
     """Extract results from LLM Refine Loop data."""
-    results = data['results']
+    results = data["results"]
 
-    pcd_values = [r['evaluation']['pcd'] for r in results]
-    hdd_values = [r['evaluation']['hdd'] for r in results]
-    iou_values = [r['evaluation']['iou'] for r in results]
-    dsc_values = [r['evaluation']['dsc'] for r in results]
-    topology_error_values = [
-        r['evaluation']['topology_error'] for r in results
-    ]
+    pcd_values = [r["evaluation"]["pcd"] for r in results]
+    hdd_values = [r["evaluation"]["hdd"] for r in results]
+    iou_values = [r["evaluation"]["iou"] for r in results]
+    dsc_values = [r["evaluation"]["dsc"] for r in results]
+    topology_error_values = [r["evaluation"]["topology_error"] for r in results]
     command_accuracy_values = [
-        r['evaluation']['cad_structure']['command_accuracy']
-        for r in results
+        r["evaluation"]["cad_structure"]["command_accuracy"] for r in results
     ]
 
-    success_rate = data['successful'] / data['total_models']
-    topology_correct_rate = data['summary']['topology_correct_rate']
+    success_rate = data["successful"] / data["total_models"]
+    topology_correct_rate = data["summary"]["topology_correct_rate"]
 
     return MethodResults(
         name="LLM Refine",
@@ -114,28 +113,25 @@ def extract_refine_results(data: dict[str, Any]) -> MethodResults:
         dsc=calculate_stats(dsc_values),
         topology_error=calculate_stats(topology_error_values),
         topology_correct_rate=topology_correct_rate,
-        command_accuracy=calculate_stats(command_accuracy_values)
+        command_accuracy=calculate_stats(command_accuracy_values),
     )
 
 
 def extract_evo_results(data: dict[str, Any]) -> MethodResults:
     """Extract results from Evolutionary Algorithm data."""
-    results = data['results']
+    results = data["results"]
 
-    pcd_values = [r['evaluation']['pcd'] for r in results]
-    hdd_values = [r['evaluation']['hdd'] for r in results]
-    iou_values = [r['evaluation']['iou'] for r in results]
-    dsc_values = [r['evaluation']['dsc'] for r in results]
-    topology_error_values = [
-        r['evaluation']['topology_error'] for r in results
-    ]
+    pcd_values = [r["evaluation"]["pcd"] for r in results]
+    hdd_values = [r["evaluation"]["hdd"] for r in results]
+    iou_values = [r["evaluation"]["iou"] for r in results]
+    dsc_values = [r["evaluation"]["dsc"] for r in results]
+    topology_error_values = [r["evaluation"]["topology_error"] for r in results]
     command_accuracy_values = [
-        r['evaluation']['cad_structure']['command_accuracy']
-        for r in results
+        r["evaluation"]["cad_structure"]["command_accuracy"] for r in results
     ]
 
-    success_rate = data['successful'] / data['total_models']
-    topology_correct_rate = data['summary']['topology_correct_rate']
+    success_rate = data["successful"] / data["total_models"]
+    topology_correct_rate = data["summary"]["topology_correct_rate"]
 
     return MethodResults(
         name="Evolutionary",
@@ -146,16 +142,13 @@ def extract_evo_results(data: dict[str, Any]) -> MethodResults:
         dsc=calculate_stats(dsc_values),
         topology_error=calculate_stats(topology_error_values),
         topology_correct_rate=topology_correct_rate,
-        command_accuracy=calculate_stats(command_accuracy_values)
+        command_accuracy=calculate_stats(command_accuracy_values),
     )
 
 
-def create_boxplot_comparison(
-    methods: list[MethodResults],
-    output_dir: Path
-) -> None:
+def create_boxplot_comparison(methods: list[MethodResults], output_dir: Path) -> None:
     """Create box plots comparing metrics across methods."""
-    metrics = ['PCD', 'HDD', 'IoU', 'DSC']
+    metrics = ["PCD", "HDD", "IoU", "DSC"]
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     axes = axes.flatten()
@@ -167,13 +160,13 @@ def create_boxplot_comparison(
         data_to_plot = []
         labels = []
         for method in methods:
-            if metric == 'PCD':
+            if metric == "PCD":
                 data_to_plot.append(method.pcd.values)
-            elif metric == 'HDD':
+            elif metric == "HDD":
                 data_to_plot.append(method.hdd.values)
-            elif metric == 'IoU':
+            elif metric == "IoU":
                 data_to_plot.append(method.iou.values)
-            elif metric == 'DSC':
+            elif metric == "DSC":
                 data_to_plot.append(method.dsc.values)
             labels.append(method.name)
 
@@ -181,31 +174,28 @@ def create_boxplot_comparison(
         bp = ax.boxplot(data_to_plot, labels=labels, patch_artist=True)
 
         # Color boxes
-        colors = ['#ff9999', '#66b3ff', '#99ff99']
-        for patch, color in zip(bp['boxes'], colors, strict=False):
+        colors = ["#ff9999", "#66b3ff", "#99ff99"]
+        for patch, color in zip(bp["boxes"], colors, strict=False):
             patch.set_facecolor(color)
 
         # Labels and title
-        direction = '↓' if metric in ['PCD', 'HDD'] else '↑'
-        ax.set_title(f'{metric} {direction}', fontsize=12, fontweight='bold')
-        ax.set_ylabel('Value')
+        direction = "↓" if metric in ["PCD", "HDD"] else "↑"
+        ax.set_title(f"{metric} {direction}", fontsize=12, fontweight="bold")
+        ax.set_ylabel("Value")
         ax.grid(True, alpha=0.3)
-        ax.tick_params(axis='x', rotation=15)
+        ax.tick_params(axis="x", rotation=15)
 
     plt.tight_layout()
-    plt.savefig(output_dir / 'metrics_boxplot_comparison.png', dpi=300)
+    plt.savefig(output_dir / "metrics_boxplot_comparison.png", dpi=300)
     plt.close()
     print(f"Saved: {output_dir / 'metrics_boxplot_comparison.png'}")
 
 
-def create_improvement_barchart(
-    methods: list[MethodResults],
-    output_dir: Path
-) -> None:
+def create_improvement_barchart(methods: list[MethodResults], output_dir: Path) -> None:
     """Create bar chart showing improvement over Drawing2Cad baseline."""
     baseline = methods[0]  # Drawing2Cad
 
-    metrics = ['PCD', 'HDD', 'IoU', 'DSC']
+    metrics = ["PCD", "HDD", "IoU", "DSC"]
     x = np.arange(len(metrics))
     width = 0.35
 
@@ -215,22 +205,22 @@ def create_improvement_barchart(
     for i, method in enumerate(methods[1:]):  # Skip baseline
         improvements = []
         for metric in metrics:
-            if metric == 'PCD':
+            if metric == "PCD":
                 baseline_val = baseline.pcd.mean
                 method_val = method.pcd.mean
-            elif metric == 'HDD':
+            elif metric == "HDD":
                 baseline_val = baseline.hdd.mean
                 method_val = method.hdd.mean
-            elif metric == 'IoU':
+            elif metric == "IoU":
                 baseline_val = baseline.iou.mean
                 method_val = method.iou.mean
-            elif metric == 'DSC':
+            elif metric == "DSC":
                 baseline_val = baseline.dsc.mean
                 method_val = method.dsc.mean
 
             # For PCD/HDD, lower is better (negative improvement is good)
             # For IoU/DSC, higher is better (positive improvement is good)
-            if metric in ['PCD', 'HDD']:
+            if metric in ["PCD", "HDD"]:
                 improvement = ((baseline_val - method_val) / baseline_val) * 100
             else:
                 improvement = ((method_val - baseline_val) / baseline_val) * 100
@@ -238,44 +228,33 @@ def create_improvement_barchart(
             improvements.append(improvement)
 
         offset = width * i
-        bars = ax.bar(
-            x + offset,
-            improvements,
-            width,
-            label=method.name,
-            alpha=0.8
-        )
+        bars = ax.bar(x + offset, improvements, width, label=method.name, alpha=0.8)
 
         # Color bars based on positive/negative
         for bar, imp in zip(bars, improvements, strict=False):
             if imp > 0:
-                bar.set_color('green')
+                bar.set_color("green")
             else:
-                bar.set_color('red')
+                bar.set_color("red")
 
-    ax.set_xlabel('Metrics', fontsize=12)
-    ax.set_ylabel('Improvement over Drawing2Cad (%)', fontsize=12)
+    ax.set_xlabel("Metrics", fontsize=12)
+    ax.set_ylabel("Improvement over Drawing2Cad (%)", fontsize=12)
     ax.set_title(
-        'Performance Improvement vs Drawing2Cad Baseline',
-        fontsize=14,
-        fontweight='bold'
+        "Performance Improvement vs Drawing2Cad Baseline", fontsize=14, fontweight="bold"
     )
     ax.set_xticks(x + width / 2)
     ax.set_xticklabels(metrics)
     ax.legend()
-    ax.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
-    ax.grid(True, alpha=0.3, axis='y')
+    ax.axhline(y=0, color="black", linestyle="-", linewidth=0.5)
+    ax.grid(True, alpha=0.3, axis="y")
 
     plt.tight_layout()
-    plt.savefig(output_dir / 'improvement_barchart.png', dpi=300)
+    plt.savefig(output_dir / "improvement_barchart.png", dpi=300)
     plt.close()
     print(f"Saved: {output_dir / 'improvement_barchart.png'}")
 
 
-def create_topology_comparison(
-    methods: list[MethodResults],
-    output_dir: Path
-) -> None:
+def create_topology_comparison(methods: list[MethodResults], output_dir: Path) -> None:
     """Create comparison chart for topology metrics (LLM methods only)."""
     llm_methods = [m for m in methods if m.topology_error is not None]
 
@@ -289,27 +268,27 @@ def create_topology_comparison(
     labels = [m.name for m in llm_methods]
 
     bp1 = ax1.boxplot(data_to_plot, labels=labels, patch_artist=True)
-    colors = ['#66b3ff', '#99ff99']
-    for patch, color in zip(bp1['boxes'], colors[:len(llm_methods)], strict=False):
+    colors = ["#66b3ff", "#99ff99"]
+    for patch, color in zip(bp1["boxes"], colors[: len(llm_methods)], strict=False):
         patch.set_facecolor(color)
 
-    ax1.set_title('Topology Error ↓', fontsize=12, fontweight='bold')
-    ax1.set_ylabel('Error Value')
+    ax1.set_title("Topology Error ↓", fontsize=12, fontweight="bold")
+    ax1.set_ylabel("Error Value")
     ax1.grid(True, alpha=0.3)
 
     # Command Accuracy boxplot
     data_to_plot = [m.command_accuracy.values for m in llm_methods]
 
     bp2 = ax2.boxplot(data_to_plot, labels=labels, patch_artist=True)
-    for patch, color in zip(bp2['boxes'], colors[:len(llm_methods)], strict=False):
+    for patch, color in zip(bp2["boxes"], colors[: len(llm_methods)], strict=False):
         patch.set_facecolor(color)
 
-    ax2.set_title('Command Accuracy ↑', fontsize=12, fontweight='bold')
-    ax2.set_ylabel('Accuracy')
+    ax2.set_title("Command Accuracy ↑", fontsize=12, fontweight="bold")
+    ax2.set_ylabel("Accuracy")
     ax2.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(output_dir / 'topology_comparison.png', dpi=300)
+    plt.savefig(output_dir / "topology_comparison.png", dpi=300)
     plt.close()
     print(f"Saved: {output_dir / 'topology_comparison.png'}")
 
@@ -318,7 +297,7 @@ def generate_model_comparison_table(
     model_name: str,
     drawing2cad_result: dict[str, Any] | None,
     refine_result: dict[str, Any],
-    evo_result: dict[str, Any]
+    evo_result: dict[str, Any],
 ) -> str:
     """Generate comparison table for a single model."""
     table = f"### {model_name}\n\n"
@@ -327,39 +306,39 @@ def generate_model_comparison_table(
 
     # Extract metrics
     d2c_pcd = (
-        drawing2cad_result['shape_metrics']['pcd']
-        if drawing2cad_result and drawing2cad_result.get('success')
+        drawing2cad_result["shape_metrics"]["pcd"]
+        if drawing2cad_result and drawing2cad_result.get("success")
         else None
     )
-    ref_pcd = refine_result['evaluation']['pcd']
-    evo_pcd = evo_result['evaluation']['pcd']
+    ref_pcd = refine_result["evaluation"]["pcd"]
+    evo_pcd = evo_result["evaluation"]["pcd"]
 
     d2c_hdd = (
-        drawing2cad_result['shape_metrics']['hdd']
-        if drawing2cad_result and drawing2cad_result.get('success')
+        drawing2cad_result["shape_metrics"]["hdd"]
+        if drawing2cad_result and drawing2cad_result.get("success")
         else None
     )
-    ref_hdd = refine_result['evaluation']['hdd']
-    evo_hdd = evo_result['evaluation']['hdd']
+    ref_hdd = refine_result["evaluation"]["hdd"]
+    evo_hdd = evo_result["evaluation"]["hdd"]
 
     d2c_iou = (
-        drawing2cad_result['shape_metrics']['iou']
-        if drawing2cad_result and drawing2cad_result.get('success')
+        drawing2cad_result["shape_metrics"]["iou"]
+        if drawing2cad_result and drawing2cad_result.get("success")
         else None
     )
-    ref_iou = refine_result['evaluation']['iou']
-    evo_iou = evo_result['evaluation']['iou']
+    ref_iou = refine_result["evaluation"]["iou"]
+    evo_iou = evo_result["evaluation"]["iou"]
 
     d2c_dsc = (
-        drawing2cad_result['shape_metrics']['dsc']
-        if drawing2cad_result and drawing2cad_result.get('success')
+        drawing2cad_result["shape_metrics"]["dsc"]
+        if drawing2cad_result and drawing2cad_result.get("success")
         else None
     )
-    ref_dsc = refine_result['evaluation']['dsc']
-    evo_dsc = evo_result['evaluation']['dsc']
+    ref_dsc = refine_result["evaluation"]["dsc"]
+    evo_dsc = evo_result["evaluation"]["dsc"]
 
-    ref_topo = refine_result['evaluation']['topology_error']
-    evo_topo = evo_result['evaluation']['topology_error']
+    ref_topo = refine_result["evaluation"]["topology_error"]
+    evo_topo = evo_result["evaluation"]["topology_error"]
 
     # PCD row
     pcd_values = [v for v in [d2c_pcd, ref_pcd, evo_pcd] if v is not None]
@@ -451,11 +430,15 @@ def generate_summary_table(methods: list[MethodResults]) -> str:
     table += f"{ref_imp_dsc:+.1f}% / {evo_imp_dsc:+.1f}% |\n"
 
     # Success rate
-    ref_imp_sr = ((refine.success_rate - baseline.success_rate) / baseline.success_rate) * 100
-    evo_imp_sr = ((evo.success_rate - baseline.success_rate) / baseline.success_rate) * 100
-    table += f"| 成功率 | {baseline.success_rate*100:.1f}% | "
-    table += f"{refine.success_rate*100:.1f}% | "
-    table += f"{evo.success_rate*100:.1f}% | "
+    ref_imp_sr = (
+        (refine.success_rate - baseline.success_rate) / baseline.success_rate
+    ) * 100
+    evo_imp_sr = (
+        (evo.success_rate - baseline.success_rate) / baseline.success_rate
+    ) * 100
+    table += f"| 成功率 | {baseline.success_rate * 100:.1f}% | "
+    table += f"{refine.success_rate * 100:.1f}% | "
+    table += f"{evo.success_rate * 100:.1f}% | "
     table += f"{ref_imp_sr:+.1f}% / {evo_imp_sr:+.1f}% |\n"
 
     table += "\n"
@@ -467,7 +450,7 @@ def generate_report(
     drawing2cad_data: dict[str, Any],
     refine_data: dict[str, Any],
     evo_data: dict[str, Any],
-    output_dir: Path
+    output_dir: Path,
 ) -> str:
     """Generate comprehensive markdown report."""
     report = "# Image-to-CAD Evaluation Comparison Report\n\n"
@@ -493,9 +476,13 @@ def generate_report(
 
     report += f"- **PCD（点群距離）**: {best_pcd.name}が最も優れている（平均: {best_pcd.pcd.mean:.4f}）\n"
     report += f"- **HDD（ハウスドルフ距離）**: {best_hdd.name}が最も優れている（平均: {best_hdd.hdd.mean:.4f}）\n"
-    report += f"- **IoU**: {best_iou.name}が最も優れている（平均: {best_iou.iou.mean:.4f}）\n"
-    report += f"- **DSC**: {best_dsc.name}が最も優れている（平均: {best_dsc.dsc.mean:.4f}）\n"
-    report += f"- **成功率**: LLM手法は100%の成功率を達成（Drawing2Cadは{baseline.success_rate*100:.1f}%）\n\n"
+    report += (
+        f"- **IoU**: {best_iou.name}が最も優れている（平均: {best_iou.iou.mean:.4f}）\n"
+    )
+    report += (
+        f"- **DSC**: {best_dsc.name}が最も優れている（平均: {best_dsc.dsc.mean:.4f}）\n"
+    )
+    report += f"- **成功率**: LLM手法は100%の成功率を達成（Drawing2Cadは{baseline.success_rate * 100:.1f}%）\n\n"
 
     report += "### 推奨事項\n\n"
     report += "- 形状の幾何学的精度を重視する場合、Drawing2Cadが依然として優位性を持つ\n"
@@ -533,26 +520,20 @@ def generate_report(
     report += "## モデル別詳細比較\n\n"
 
     # Create model name mapping
-    model_names = [r['model_name'] for r in refine_data['results']]
+    model_names = [r["model_name"] for r in refine_data["results"]]
 
     for model_name in model_names:
         # Find results for this model
         d2c_result = next(
-            (r for r in drawing2cad_data['results'] if r['name'] == model_name),
-            None
+            (r for r in drawing2cad_data["results"] if r["name"] == model_name), None
         )
         ref_result = next(
-            r for r in refine_data['results'] if r['model_name'] == model_name
+            r for r in refine_data["results"] if r["model_name"] == model_name
         )
-        evo_result = next(
-            r for r in evo_data['results'] if r['model_name'] == model_name
-        )
+        evo_result = next(r for r in evo_data["results"] if r["model_name"] == model_name)
 
         report += generate_model_comparison_table(
-            model_name,
-            d2c_result,
-            ref_result,
-            evo_result
+            model_name, d2c_result, ref_result, evo_result
         )
 
     # Discussion
@@ -560,13 +541,17 @@ def generate_report(
 
     report += "### 手法間の性能差の分析\n\n"
     report += "1. **幾何学的精度（PCD, HDD）**\n"
-    report += f"   - Drawing2Cad: PCD={baseline.pcd.mean:.4f}, HDD={baseline.hdd.mean:.4f}\n"
+    report += (
+        f"   - Drawing2Cad: PCD={baseline.pcd.mean:.4f}, HDD={baseline.hdd.mean:.4f}\n"
+    )
     report += f"   - LLM Refine: PCD={refine.pcd.mean:.4f}, HDD={refine.hdd.mean:.4f}\n"
     report += f"   - Evolutionary: PCD={evo.pcd.mean:.4f}, HDD={evo.hdd.mean:.4f}\n"
     report += "   - Drawing2Cadが依然として最も高い幾何学的精度を示す\n\n"
 
     report += "2. **形状類似度（IoU, DSC）**\n"
-    report += f"   - Drawing2Cad: IoU={baseline.iou.mean:.4f}, DSC={baseline.dsc.mean:.4f}\n"
+    report += (
+        f"   - Drawing2Cad: IoU={baseline.iou.mean:.4f}, DSC={baseline.dsc.mean:.4f}\n"
+    )
     report += f"   - LLM Refine: IoU={refine.iou.mean:.4f}, DSC={refine.dsc.mean:.4f}\n"
     report += f"   - Evolutionary: IoU={evo.iou.mean:.4f}, DSC={evo.iou.mean:.4f}\n"
     report += "   - Evolutionary Algorithmが最も高い形状類似度を達成\n\n"
@@ -591,8 +576,8 @@ def generate_report(
 
     report += "### 失敗ケースの分析\n\n"
     report += "Drawing2Cadで失敗したケース:\n"
-    for result in drawing2cad_data['results']:
-        if not result.get('success', False):
+    for result in drawing2cad_data["results"]:
+        if not result.get("success", False):
             report += f"- {result['name']}: {result.get('error', 'Unknown error')}\n"
 
     report += "\nLLM手法（Refine, Evolutionary）では全てのケースで成功している。\n\n"
@@ -650,17 +635,11 @@ def main():
 
     # Generate report
     print("Generating report...")
-    report = generate_report(
-        methods,
-        drawing2cad_data,
-        refine_data,
-        evo_data,
-        output_dir
-    )
+    report = generate_report(methods, drawing2cad_data, refine_data, evo_data, output_dir)
 
     # Save report
     report_path = output_dir / "evaluation_comparison_report.md"
-    with open(report_path, 'w', encoding='utf-8') as f:
+    with open(report_path, "w", encoding="utf-8") as f:
         f.write(report)
 
     print("\nReport generated successfully!")
