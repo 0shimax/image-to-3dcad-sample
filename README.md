@@ -1,112 +1,113 @@
-# Image-to-3DCAD: VLMを用いた画像からのCADコード生成
+# Image-to-3DCAD: CAD Code Generation from Technical Drawings using VLM
 
-技術図面画像からVision Language Model (VLM) を用いてbuild123d CADコードを生成し、正解データと比較評価するパイプラインです。
+A pipeline that generates build123d CAD code from technical drawing images using Vision Language Models (VLM), and evaluates the output against ground truth STEP files.
 
-## 機能
+## Features
 
-- **ワンショットCAD生成**: VLMによる画像からのbuild123d CADコード生成（1-shot）
-- **自動評価**: 生成STEPファイルと正解STEPファイルの幾何学的メトリクス比較（PCD, HDD, IoU, DSC）
-- **トポロジメトリクス**: オイラー標数に基づく評価指標
-- **バッチ処理**: paired形式データセットの一括処理とレポート生成
-- **VLM統合**: Vertex AI経由でGeminiモデルを活用
-- **ローカルキャッシュ**: VLMレスポンスをキャッシュしAPI呼び出しを削減
+- **One-shot CAD generation**: Generate build123d CAD code from images via VLM (1-shot)
+- **Automated evaluation**: Compare generated STEP files against ground truth using geometric metrics (PCD, HDD, IoU, DSC)
+- **Topology metrics**: Evaluation based on Euler characteristic
+- **Batch processing**: Process paired-format datasets with automatic report generation
+- **Parallel execution**: Concurrent model processing with `asyncio.gather` and semaphore-based throttling
+- **VLM integration**: Gemini models via Vertex AI
+- **Local caching**: Cache VLM responses and CAD rendering results to reduce API calls
 
-## アーキテクチャ
+## Architecture
 
-DDD（ドメイン駆動設計）に基づくクリーンアーキテクチャ：
+Clean architecture based on Domain-Driven Design (DDD):
 
 ```
 src/
-├── domain/                    # ドメイン層（ビジネスロジック）
-│   ├── value_objects/         # 値オブジェクト（CadCode, MultiviewImage等）
-│   ├── services/              # ドメインサービスインターフェース
-│   └── repositories/          # リポジトリインターフェース
+├── domain/                    # Domain layer (business logic)
+│   ├── value_objects/         # Value objects (CadCode, MultiviewImage, etc.)
+│   ├── services/              # Domain service interfaces
+│   └── repositories/          # Repository interfaces
 │
-├── application/               # アプリケーション層
-│   ├── workflow/              # LangGraphワークフロー
-│   │   ├── nodes/             # ワークフローノード
-│   │   ├── graph_builder.py   # グラフ構築
-│   │   └── workflow_state.py  # 状態定義
-│   ├── use_cases/             # ユースケース
-│   ├── services/              # レポート生成
-│   └── dto/                   # データ転送オブジェクト
+├── application/               # Application layer
+│   ├── workflow/              # LangGraph workflow
+│   │   ├── nodes/             # Workflow nodes
+│   │   ├── graph_builder.py   # Graph construction
+│   │   └── workflow_state.py  # State definitions
+│   ├── use_cases/             # Use cases
+│   ├── services/              # Report generation
+│   └── dto/                   # Data transfer objects
 │
-├── infrastructure/            # インフラストラクチャ層
-│   ├── llm/                   # VLM統合（google-genai + Vertex AI）
-│   ├── cad/                   # CADレンダリング（build123d）
-│   ├── repositories/          # リポジトリ実装
-│   └── services/              # サービス実装
+├── infrastructure/            # Infrastructure layer
+│   ├── llm/                   # VLM integration (google-genai + Vertex AI)
+│   ├── cad/                   # CAD rendering (build123d)
+│   ├── repositories/          # Repository implementations
+│   └── services/              # Service implementations
 │
-└── presentation/              # プレゼンテーション層
-    └── cli/                   # CLIエントリポイント
+└── presentation/              # Presentation layer
+    └── cli/                   # CLI entry point
 ```
 
-## セットアップ
+## Setup
 
-### 1. 依存関係のインストール
+### 1. Install dependencies
 
 ```bash
 uv sync
 ```
 
-### 2. 環境設定
+### 2. Configure environment
 
-`.env`ファイルを作成：
+Create a `.env` file:
 
 ```bash
-# Google Cloudプロジェクト
+# Google Cloud project
 GCP_PROJECT_ID=your-project-id
 GCP_LOCATION=global
 
-# Vertex AIモデル
+# Vertex AI model
 VERTEX_AI_MODEL_NAME=gemini-3.1-flash-lite-preview
 ```
 
-### 3. Google Cloud認証
+### 3. Authenticate with Google Cloud
 
 ```bash
 gcloud auth application-default login
 ```
 
-### 4. テスト実行
+### 4. Run tests
 
 ```bash
 uv run pytest tests/ -v
 ```
 
-## 使用方法
+## Usage
 
-### パイプライン実行
+### Run the pipeline
 
-`paired`形式のデータセットに対して、画像からCAD生成→正解データとの評価→レポート生成を一括実行：
+Process a paired-format dataset: image → CAD generation → evaluation against ground truth → report generation:
 
 ```bash
-# 基本的な使用方法
+# Basic usage
 uv run python -m presentation.cli.main pipeline \
-    --input data/paired \
+    --input data/sample \
     --output-dir data/output/pipeline_results
 
-# 最初の10件のみ処理
+# Process only the first 10 models
 uv run python -m presentation.cli.main pipeline \
-    --input data/paired \
+    --input data/sample \
     --limit 10 \
     --output-dir data/output/pipeline_results
 
-# 既存の出力も再処理する場合
+# Reprocess even if output already exists
 uv run python -m presentation.cli.main pipeline \
-    --input data/paired \
+    --input data/sample \
     --output-dir data/output/pipeline_results \
     --no-skip-existing
 ```
 
-**オプション：**
-- `--input, -i`: 入力ディレクトリ（paired形式、必須）
-- `--output-dir, -o`: 出力ディレクトリ（デフォルト: `data/output/pipeline_{timestamp}`）
-- `--limit, -l`: 処理するモデル数の上限
-- `--no-skip-existing`: 既存出力があっても再処理する
-- `--model`: VLMモデル名（デフォルト: 環境変数VERTEX_AI_MODEL_NAME）
+**Options:**
+- `--input, -i`: Input directory (paired format, required)
+- `--output-dir, -o`: Output directory (default: `data/output/pipeline_{timestamp}`)
+- `--limit, -l`: Maximum number of models to process
+- `--no-skip-existing`: Reprocess models even if output exists
+- `--model`: VLM model name (default: `VERTEX_AI_MODEL_NAME` env variable)
 
-### 入力ディレクトリ形式（paired）
+### Input directory format (paired)
 
 ```
 input_dir/
@@ -115,68 +116,68 @@ input_dir/
 │   ├── model_b.png
 │   └── ...
 └── step/
-    ├── model_a.step  (または .stp)
+    ├── model_a.step  (or .stp)
     ├── model_b.step
     └── ...
 ```
 
-### 出力
+### Output
 
 ```
 output_dir/
-├── {model_name}/           # 各モデルの出力
-│   ├── {model_name}.step   # 生成されたSTEPファイル
-│   ├── {model_name}.py     # 生成されたCADコード
-│   └── result.json         # 個別結果（メトリクス含む）
-├── report.md               # Markdownレポート
-└── pipeline_result.json    # JSONレポート
+├── {model_name}/           # Per-model output
+│   ├── {model_name}.step   # Generated STEP file
+│   ├── {model_name}.py     # Generated CAD code
+│   └── result.json         # Individual results (with metrics)
+├── report.md               # Markdown report
+└── pipeline_result.json    # JSON report
 ```
 
-### 評価メトリクス
+### Evaluation metrics
 
-| メトリクス | 説明 | 方向 |
-|-----------|------|------|
-| PCD | Point Cloud Distance（点群距離） | ↓ 低いほど良い |
-| HDD | Hausdorff Distance（ハウスドルフ距離） | ↓ 低いほど良い |
-| IoU | Intersection over Union | ↑ 高いほど良い |
-| DSC | Dice Similarity Coefficient | ↑ 高いほど良い |
-| Topology Error | オイラー標数の差 | ↓ 低いほど良い |
+| Metric | Description | Direction |
+|--------|-------------|-----------|
+| PCD | Point Cloud Distance | ↓ Lower is better |
+| HDD | Hausdorff Distance | ↓ Lower is better |
+| IoU | Intersection over Union | ↑ Higher is better |
+| DSC | Dice Similarity Coefficient | ↑ Higher is better |
+| Topology Error | Euler characteristic difference | ↓ Lower is better |
 
-### 比較レポート生成
+### Generate comparison report
 
-複数手法の結果を比較するレポートを生成：
+Generate a report comparing results across multiple methods:
 
 ```bash
 uv run python scripts/generate_comparison_report.py
 ```
 
-## 処理フロー
+## Pipeline flow
 
 ```
-入力画像 → VLM（CADコード生成） → build123d（STEP出力） → 正解データと評価
+Input image → VLM (CAD code generation) → build123d (STEP export) → Evaluation against ground truth
 ```
 
-1. **入力**: paired形式のデータセット（画像 + 正解STEPファイル）
-2. **生成**: VLMが画像からbuild123d CADコードを1-shot生成
-3. **レンダリング**: build123dでCADコードを実行しSTEPファイルを出力
-4. **評価**: 生成STEPと正解STEPの幾何学的メトリクスを計算
-5. **レポート**: 全結果をMarkdown/JSONレポートとして出力
+1. **Input**: Paired-format dataset (images + ground truth STEP files)
+2. **Generation**: VLM generates build123d CAD code from images (1-shot)
+3. **Rendering**: build123d executes the CAD code and exports STEP files
+4. **Evaluation**: Computes geometric metrics between generated and ground truth STEP files
+5. **Report**: Outputs results as Markdown and JSON reports
 
-## サンプルデータ
+## Sample data
 
-`data/sample/` にNIST MBE PMIプロジェクトのテストケースを同梱しています。
+`data/sample/` includes test cases from the NIST MBE PMI project.
 
 ```bash
-# サンプルデータで動作確認
+# Quick test with sample data
 uv run python -m presentation.cli.main pipeline \
     --input data/sample \
     --output-dir data/output/sample_results
 ```
 
-## ライセンス
+## License
 
-### サンプルデータ（data/sample/）
+### Sample data (data/sample/)
 
-`data/sample/` に含まれるCADモデルおよびSTEPファイルは、[NIST MBE PMI Validation and Conformance Testing](https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-validation) プロジェクトから取得したものです。
+The CAD models and STEP files in `data/sample/` were obtained from the [NIST MBE PMI Validation and Conformance Testing](https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-validation) project.
 
-これらのファイルは米国連邦政府機関（NIST）が作成したものであり、[Title 17 U.S.C. Section 105](https://www.govinfo.gov/content/pkg/USCODE-2021-title17/html/USCODE-2021-title17-chap1-sec105.htm) に基づき米国内において著作権の対象外（パブリックドメイン）です。
+These files were created by NIST, a U.S. federal government agency, and are in the public domain under [Title 17 U.S.C. Section 105](https://www.govinfo.gov/content/pkg/USCODE-2021-title17/html/USCODE-2021-title17-chap1-sec105.htm).
