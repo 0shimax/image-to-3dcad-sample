@@ -1,0 +1,61 @@
+repos:
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.7.20
+    hooks:
+      - id: uv-lock
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: debug-statements
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: fix-byte-order-marker
+      - id: trailing-whitespace
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.4
+    hooks:
+      # Run the linter.
+      - id: ruff
+        name: ruff
+        description: "Run 'ruff' for checking Python linting"
+        entry: uv run ruff check --force-exclude
+        language: python
+        types_or: [python, pyi]
+        # --fix: enable lint fixes
+        args: [--fix]
+        require_serial: true
+        additional_dependencies: []
+        minimum_pre_commit_version: "4.2.0"
+      - id: ruff-format
+        name: ruff-format
+        description: "Run 'ruff format' for formatting Python codes"
+        entry: uv run ruff format --force-exclude
+        language: python
+        types_or: [python, pyi]
+        args: []
+        require_serial: true
+        additional_dependencies: []
+        minimum_pre_commit_version: "4.2.0"
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty check
+        entry: uv run ty check ./sample-prj --ignore unresolved-import
+        language: python
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.34.0
+    hooks:
+      - id: typos
+  - repo: local
+    hooks:
+      - id: git-secrets
+        name: git secrets
+        entry: git secrets --scan
+        language: system
+        types: [text]
